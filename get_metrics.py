@@ -2,25 +2,35 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 
 def get_classification_metrics(y_true, y_pred, y_proba=None):
+    cm = confusion_matrix(y_true, y_pred)
+    tn, fp, fn, tp = cm.ravel()
+    
     metrics = {
         'accuracy': accuracy_score(y_true, y_pred),
         'precision': precision_score(y_true, y_pred, average='binary'),  # PPV
-        'recall': recall_score(y_true, y_pred, average='binary'),
-        'f1_score': f1_score(y_true, y_pred, average='binary')
+        'recall': recall_score(y_true, y_pred, average='binary'),  # Sensitivity
+        'f1_score': f1_score(y_true, y_pred, average='binary'),
+        'specificity': tn / (tn + fp) if (tn + fp) > 0 else 0,
+        'npv': tn / (tn + fn) if (tn + fn) > 0 else 0,  # NPV
+        'ppv': tp / (tp + fp) if (tp + fp) > 0 else 0,  # PPV
+        'tn': tn,
+        'fp': fp,
+        'fn': fn,
+        'tp': tp
     }
     
     if y_proba is not None:
         metrics['roc_auc'] = roc_auc_score(y_true, y_proba)
-    
-    cm = confusion_matrix(y_true, y_pred)
-    tn, fp, fn, tp = cm.ravel()
-    metrics['tn'] = tn
-    metrics['fp'] = fp
-    metrics['fn'] = fn
-    metrics['tp'] = tp
-    
-    metrics['npv'] = tn / (tn + fn) if (tn + fn) > 0 else 0  # NPV
-    metrics['ppv'] = tp / (tp + fp) if (tp + fp) > 0 else 0  # PPV
+        
+        # Calculate lift
+        # Assuming the positive class is represented by 1
+        positive_class_proba = y_proba[y_true == 1]
+        if len(positive_class_proba) > 0:
+            metrics['lift'] = positive_class_proba.mean() / (y_true.mean())
+        else:
+            metrics['lift'] = 0
+    else:
+        metrics['lift'] = None
 
     return metrics
 
