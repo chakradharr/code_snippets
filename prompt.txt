@@ -1,0 +1,5 @@
+hey i am writing scoring code for an ml model based on trianing sql files. In training we may have tested multiple features but scoring we will only use the final selected features. I wouuld like to use you to write scoring sql based on the lsit of features selected in the final model
+
+
+I will provide the sql file i want you only include logic or transformations only related to then selected features
+
