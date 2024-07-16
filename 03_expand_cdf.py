@@ -149,7 +149,41 @@ expanded_df = expand_dataset(test_df_tmp, id_col='pme_reference_no', time_col='t
 print(expanded_df)
 
 
+import dask.dataframe as dd
+import pandas as pd
+import numpy as np
 
+def expand_dataset_dask(data, id_col='pme_reference_no', time_col='t', end_time=30):
+    """
+    A function that expands a dataset for each value of ID from its t value till t=30 and sorts it by ID and time using Dask.
+    
+    Parameters:
+    data (dd.DataFrame): The original Dask DataFrame.
+    id_col (str): The column name for ID (default: 'pme_reference_no').
+    time_col (str): The column name for time (default: 't').
+    end_time (int): The end time for expansion (default: 30).
+
+    Returns:
+    dd.DataFrame: The expanded and sorted Dask DataFrame.
+    """
+    
+    def process_group(group):
+        start_time = group[time_col].min().compute()
+        time_range = pd.DataFrame({time_col: np.arange(start_time, end_time + 1)})
+        time_range[id_col] = group[id_col].iloc[0].compute()
+        expanded_group = pd.merge(time_range, group.compute(), on=[id_col, time_col], how='left')
+        return expanded_group
+
+    grouped = data.groupby(id_col)
+    results = grouped.apply(lambda group: process_group(group)).compute()
+    result = dd.from_pandas(pd.concat(results), npartitions=data.npartitions)
+    
+    return result
+
+# Assuming your Dask DataFrame is named test_dd and contains columns 'pme_reference_no' and 't'
+test_dd = dd.from_pandas(test_df, npartitions=8)
+expanded_dd = expand_dataset_dask(test_dd)
+expanded_dd.compute()
 
 
 
