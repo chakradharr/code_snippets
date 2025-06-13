@@ -196,4 +196,37 @@ df['los'] = pd.to_numeric(df['los'], errors='coerce')
 df['los'].describe(percentiles=[0.25, 0.5, 0.75, 0.9, 0.95])
 
 
+# update
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Ensure 'los' and 'snf_score' are numeric
+df['los'] = pd.to_numeric(df['los'], errors='coerce')
+df['snf_score'] = pd.to_numeric(df['snf_score'], errors='coerce')
+
+# Set seaborn style
+sns.set(style="whitegrid")
+
+# Plot LOS distribution with improved layout
+plt.figure(figsize=(16, 6))
+sns.histplot(df['los'], bins=50, kde=True, color='lightblue', edgecolor='black')
+
+# Add vertical threshold lines
+plt.axvline(7, color='green', linestyle='--', linewidth=2, label='7 Days')
+plt.axvline(10, color='orange', linestyle='--', linewidth=2, label='10 Days')
+plt.axvline(14, color='red', linestyle='--', linewidth=2, label='14 Days')
+plt.axvline(15, color='purple', linestyle='--', linewidth=2, label='15 Days')
+
+# Focus x-axis on LOS range of interest (you can adjust as needed)
+plt.xlim(0, 50)
+
+# Titles and labels
+plt.title("Distribution of SNF Length of Stay (LOS)", fontsize=14)
+plt.xlabel("Length of Stay (Days)", fontsize=12)
+plt.ylabel("Number of Members", fontsize=12)
+plt.legend(loc='upper right', fontsize=10)
+plt.tight_layout()
+plt.show()
 
