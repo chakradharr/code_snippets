@@ -230,3 +230,72 @@ plt.legend(loc='upper right', fontsize=10)
 plt.tight_layout()
 plt.show()
 
+
+
+
+
+
+### upsated
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Ensure 'los' is numeric and drop NaNs
+df['los'] = pd.to_numeric(df['los'], errors='coerce')
+los_data = df['los'].dropna()
+
+# Define long stay threshold
+long_stay_threshold = 15
+
+# Calculate percentiles
+p75 = np.percentile(los_data, 75)
+p85 = np.percentile(los_data, 85)
+p95 = np.percentile(los_data, 95)
+
+# Set up the histogram
+plt.figure(figsize=(18, 6))
+counts, bins, patches = plt.hist(
+    los_data,
+    bins=range(0, int(los_data.max()) + 2),  # bin for every LOS day
+    color='lightblue',
+    edgecolor='black',
+    alpha=0.8
+)
+
+# Shade long-stay bars (≥15 days)
+for bin_left, bin_right, patch in zip(bins[:-1], bins[1:], patches):
+    if bin_left >= long_stay_threshold:
+        patch.set_facecolor('salmon')
+
+# Annotate counts on top of each bar
+for i in range(len(counts)):
+    if counts[i] > 0:
+        plt.text(
+            bins[i] + 0.4,
+            counts[i] + 5,
+            int(counts[i]),
+            ha='center',
+            fontsize=8
+        )
+
+# Add key threshold lines
+plt.axvline(7, color='green', linestyle='--', linewidth=2, label='7 Days')
+plt.axvline(10, color='orange', linestyle='--', linewidth=2, label='10 Days')
+plt.axvline(14, color='red', linestyle='--', linewidth=2, label='14 Days')
+plt.axvline(15, color='purple', linestyle='--', linewidth=2, label='15 Days (Long Stay)')
+
+# Add percentile lines
+plt.axvline(p75, color='blue', linestyle=':', linewidth=2, label='75th Percentile')
+plt.axvline(p85, color='navy', linestyle=':', linewidth=2, label='85th Percentile')
+plt.axvline(p95, color='black', linestyle=':', linewidth=2, label='95th Percentile')
+
+# Labels and title
+plt.title("Distribution of SNF Length of Stay (LOS) with Highlighted Long Stays and Percentiles", fontsize=14)
+plt.xlabel("Length of Stay (Days)", fontsize=12)
+plt.ylabel("Number of Members", fontsize=12)
+plt.xlim(0, bins[-1])  # adjust if needed
+plt.legend(loc='upper right', fontsize=10)
+plt.tight_layout()
+plt.show()
+
