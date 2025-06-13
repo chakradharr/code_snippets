@@ -299,3 +299,58 @@ plt.legend(loc='upper right', fontsize=10)
 plt.tight_layout()
 plt.show()
 
+
+### updatedddddd 
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
+# Ensure 'los' is numeric and drop missing values
+df['los'] = pd.to_numeric(df['los'], errors='coerce')
+los_data = df['los'].dropna()
+
+# Define LOS category thresholds
+short_threshold = 10
+long_threshold = 20
+
+# Create the histogram
+plt.figure(figsize=(18, 6))
+counts, bins, patches = plt.hist(
+    los_data,
+    bins=range(0, 82),  # Bins from 0 to 81 (per day)
+    edgecolor='black',
+    alpha=0.9
+)
+
+# Color bars based on LOS category
+for bin_left, bin_right, patch in zip(bins[:-1], bins[1:], patches):
+    if bin_right <= short_threshold:
+        patch.set_facecolor('skyblue')     # Short stay
+    elif bin_left > long_threshold:
+        patch.set_facecolor('salmon')      # Long stay
+    else:
+        patch.set_facecolor('lightgreen')  # Typical stay
+
+# Add category boundary lines
+plt.axvline(short_threshold, color='blue', linestyle='--', linewidth=2, label='Short Stay ≤ 10 Days')
+plt.axvline(long_threshold, color='darkred', linestyle='--', linewidth=2, label='Long Stay > 20 Days')
+
+# Add KDE distribution line
+sns.kdeplot(los_data, color='black', linewidth=2, label='Distribution (KDE)')
+
+# Chart formatting
+plt.title("LOS Distribution with Highlighted Short, Typical, and Long Stays", fontsize=14)
+plt.xlabel("Length of Stay (Days)", fontsize=12)
+plt.ylabel("Number of Members", fontsize=12)
+plt.xlim(0, 80)
+plt.xticks(np.arange(0, 81, 2))
+plt.legend(loc='upper right', fontsize=10)
+plt.tight_layout()
+plt.show()
+
+
+
+
+
