@@ -130,5 +130,65 @@ plt.savefig("snf_stratified_visuals.png", dpi=300)
 plt.show()
 
 
+# 06/13
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Optional: make sure 'los' is numeric
+df['los'] = pd.to_numeric(df['los'], errors='coerce')
+df['snf_score'] = pd.to_numeric(df['snf_score'], errors='coerce')
+
+# Plot LOS histogram + KDE with key cut points
+plt.figure(figsize=(12, 6))
+sns.histplot(df['los'], bins=30, kde=True, color='lightblue', edgecolor='black')
+plt.axvline(7, color='green', linestyle='--', label='7 Days')
+plt.axvline(10, color='orange', linestyle='--', label='10 Days')
+plt.axvline(14, color='red', linestyle='--', label='14 Days')
+plt.axvline(15, color='purple', linestyle='--', label='15 Days')
+plt.title("Distribution of SNF Length of Stay (LOS)")
+plt.xlabel("LOS (Days)")
+plt.ylabel("Number of Members")
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+
+# Risk Decile Analysis
+
+# Create deciles from snf_score
+df['snf_score_decile'] = pd.qcut(df['snf_score'], 10, labels=False, duplicates='drop')
+
+# Cumulative % of LOS ≥ 15 (high to low risk)
+df['decile_high_to_low'] = df['snf_score_decile'].rank(ascending=False, method='first').astype(int)
+los_15_plus = df.groupby('snf_score_decile')['los'].apply(lambda x: (x >= 15).mean() * 100).reset_index()
+los_15_plus.columns = ['RAP Score Decile', '% LOS ≥ 15 Days']
+
+# Cumulative % of LOS ≤ 7 (low to high risk)
+los_7_or_less = df.groupby('snf_score_decile')['los'].apply(lambda x: (x <= 7).mean() * 100).reset_index()
+los_7_or_less.columns = ['RAP Score Decile', '% LOS ≤ 7 Days']
+
+# Plot ≥15 days
+plt.figure(figsize=(12, 6))
+sns.barplot(x='RAP Score Decile', y='% LOS ≥ 15 Days', data=los_15_plus, palette='Reds')
+plt.title("Cumulative % of SNF with LOS ≥ 15 Days by RAP Score Decile")
+plt.ylabel("% of Members")
+plt.xlabel("RAP Score Decile (Low to High)")
+plt.ylim(0, 100)
+plt.tight_layout()
+plt.show()
+
+# Plot ≤7 days
+plt.figure(figsize=(12, 6))
+sns.barplot(x='RAP Score Decile', y='% LOS ≤ 7 Days', data=los_7_or_less, palette='Blues')
+plt.title("Cumulative % of SNF with LOS ≤ 7 Days by RAP Score Decile")
+plt.ylabel("% of Members")
+plt.xlabel("RAP Score Decile (Low to High)")
+plt.ylim(0, 100)
+plt.tight_layout()
+plt.show()
+
 
 
