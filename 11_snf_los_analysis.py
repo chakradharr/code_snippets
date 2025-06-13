@@ -191,4 +191,9 @@ plt.tight_layout()
 plt.show()
 
 
+# percentiles
+df['los'] = pd.to_numeric(df['los'], errors='coerce')
+df['los'].describe(percentiles=[0.25, 0.5, 0.75, 0.9, 0.95])
+
+
 
