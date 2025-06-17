@@ -233,7 +233,25 @@ plot_youden(metrics_grid_df)
 
 
 
+def get_score_decile_cutoffs(df, score_col='rap_score'):
+    """
+    Returns the cutoff values for each decile of the score.
+    Shows min/max score within each decile.
+    """
+    df = df.copy()
+    df['decile'] = pd.qcut(df[score_col], 10, labels=False) + 1  # 1 = lowest, 10 = highest
 
+    decile_summary = (
+        df.groupby('decile')[score_col]
+        .agg(['min', 'max'])
+        .rename(columns={'min': 'score_min', 'max': 'score_max'})
+        .reset_index()
+    )
+
+    return decile_summary
+
+decile_cutoffs = get_score_decile_cutoffs(df, score_col='rap_score')
+print(decile_cutoffs)
 
 
 
