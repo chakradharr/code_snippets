@@ -199,6 +199,41 @@ plot_sensitivity_specificity(metrics_grid_df)
 plot_ppv_npv_accuracy(metrics_grid_df)
 plot_lift(metrics_grid_df)
 
+# visualize cutoff 
+
+# Add Youden’s J to existing metrics grid
+metrics_grid_df['Youdens_J'] = metrics_grid_df['Sensitivity'] + metrics_grid_df['Specificity'] - 1
+
+best_cutoffs = (
+    metrics_grid_df
+    .sort_values(['LOS_Threshold', 'Youdens_J'], ascending=[True, False])
+    .groupby('LOS_Threshold')
+    .head(1)
+    .reset_index(drop=True)
+)
+
+print(best_cutoffs)
+
+import matplotlib.pyplot as plt
+
+def plot_youden(metrics_df, los_thresholds=[7, 10, 14]):
+    for threshold in los_thresholds:
+        data = metrics_df[metrics_df['LOS_Threshold'] == threshold]
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(data['Score_Cutoff'], data['Youdens_J'], marker='o', label="Youden's J")
+        plt.title(f"Youden’s J vs Score Cutoff for LOS ≥ {threshold} Days")
+        plt.xlabel('RAP Score Cutoff')
+        plt.ylabel("Youden's J")
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+        
+plot_youden(metrics_grid_df)
+
+
+
+
 
 
 
