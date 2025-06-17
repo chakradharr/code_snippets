@@ -144,7 +144,61 @@ metrics_grid_df = get_metrics_grid(
     score_cutoffs=[0.3, 0.4, 0.5, 0.6, 0.7]
 )
 
-import ace_tools as tools; tools.display_dataframe_to_user(name="SNF LOS Metrics Grid", dataframe=metrics_grid_df)
+## 0617 graphs
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def plot_sensitivity_specificity(metrics_df, los_thresholds=[7, 10, 14]):
+    for threshold in los_thresholds:
+        data = metrics_df[metrics_df['LOS_Threshold'] == threshold]
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(data['Score_Cutoff'], data['Sensitivity'], marker='o', label='Sensitivity')
+        plt.plot(data['Score_Cutoff'], data['Specificity'], marker='o', label='Specificity')
+        plt.title(f'Sensitivity vs. Specificity for LOS ≥ {threshold} Days')
+        plt.xlabel('RAP Score Cutoff')
+        plt.ylabel('Metric Value')
+        plt.ylim(0, 1)
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+        
+        
+def plot_ppv_npv_accuracy(metrics_df, los_thresholds=[7, 10, 14]):
+    for threshold in los_thresholds:
+        data = metrics_df[metrics_df['LOS_Threshold'] == threshold]
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(data['Score_Cutoff'], data['PPV'], marker='o', label='PPV')
+        plt.plot(data['Score_Cutoff'], data['NPV'], marker='o', label='NPV')
+        plt.plot(data['Score_Cutoff'], data['Accuracy'], marker='o', label='Accuracy')
+        plt.title(f'PPV, NPV, Accuracy for LOS ≥ {threshold} Days')
+        plt.xlabel('RAP Score Cutoff')
+        plt.ylabel('Metric Value')
+        plt.ylim(0, 1)
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+        
+def plot_lift(metrics_df, los_thresholds=[7, 10, 14]):
+    for threshold in los_thresholds:
+        data = metrics_df[metrics_df['LOS_Threshold'] == threshold]
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(data['Score_Cutoff'], data['Lift'], marker='o', label='Lift', color='purple')
+        plt.title(f'Lift vs. Score Cutoff for LOS ≥ {threshold} Days')
+        plt.xlabel('RAP Score Cutoff')
+        plt.ylabel('Lift')
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+        
+        
+plot_sensitivity_specificity(metrics_grid_df)
+plot_ppv_npv_accuracy(metrics_grid_df)
+plot_lift(metrics_grid_df)
+
 
 
 
