@@ -284,3 +284,26 @@ plt.show()
 
 
 
+### 0625
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Assume df['days_before_admit'] is already created
+
+plt.figure(figsize=(10, 6))
+
+# Plot histogram as percentages
+counts, bins, patches = plt.hist(df['days_before_admit'], bins=30, edgecolor='black', density=True)
+
+# Convert y-axis to percentage
+plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y * 100:.1f}%'))
+
+plt.title('Distribution of Days Between Score and Admit Date (as %)')
+plt.xlabel('Days Before Admit Date (score_eff_dt - admit_dt)')
+plt.ylabel('Percentage of Patients')
+plt.xlim(-10, 20)  # Focus on range of interest
+plt.grid(True)
+plt.show()
+
+
