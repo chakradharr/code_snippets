@@ -336,3 +336,41 @@ plt.ylabel('Percentage of Patients')
 plt.xticks(bin_edges)
 plt.grid(True)
 plt.show()
+
+
+
+#### 0628
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Assume df['days_before_admit'] already exists
+
+# Define bins (customize as needed)
+bins = np.arange(-10, 21, 2)  # from -10 to 20 days, 2-day width
+
+# Create histogram
+counts, bin_edges = np.histogram(df['days_before_admit'], bins=bins)
+bin_midpoints = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+# Plot
+plt.figure(figsize=(10, 6))
+bars = plt.bar(bin_midpoints, counts, width=1.8, edgecolor='black', color='skyblue')
+
+# Add value labels on top of each bar
+for bar in bars:
+    height = bar.get_height()
+    if height > 0:
+        plt.text(bar.get_x() + bar.get_width()/2, height + 500, f'{height:,}', 
+                 ha='center', va='bottom', fontsize=9)
+
+plt.title('Number of Patients by Days Between Score and Admit Date')
+plt.xlabel('Days Before Admit Date (score_eff_dt - admit_dt)')
+plt.ylabel('Number of Patients')
+plt.xticks(bin_edges)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+
+
