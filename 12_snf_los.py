@@ -254,4 +254,33 @@ decile_cutoffs = get_score_decile_cutoffs(df, score_col='rap_score')
 print(decile_cutoffs)
 
 
+######## 06/24
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Assuming your DataFrame is named df
+# df = pd.read_csv("your_file.csv")  # Or however you're loading it
+
+# Convert to datetime
+df['score_eff_dt'] = pd.to_datetime(df['score_eff_dt'])
+df['admit_dt'] = pd.to_datetime(df['admit_dt'])
+
+# Calculate days between score and admit
+df['days_before_admit'] = (df['admit_dt'] - df['score_eff_dt']).dt.days
+
+# Basic statistics
+print("Summary statistics:")
+print(df['days_before_admit'].describe())
+
+# Distribution plot
+plt.figure(figsize=(10, 6))
+plt.hist(df['days_before_admit'], bins=30, edgecolor='black')
+plt.title('Distribution of Days Between Score and Admit Date')
+plt.xlabel('Days Before Admit Date (score_eff_dt - admit_dt)')
+plt.ylabel('Number of Patients')
+plt.grid(True)
+plt.show()
+
+
 
