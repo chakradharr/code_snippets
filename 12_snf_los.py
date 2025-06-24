@@ -372,5 +372,17 @@ plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.show()
 
+import pandas as pd
+
+# Rename 'rap_score' to 'snf_score'
+df.rename(columns={'rap_score': 'snf_score'}, inplace=True)
+
+# Ensure dates are in datetime format
+df['admit_date'] = pd.to_datetime(df['admit_date'])
+df['discharge_date'] = pd.to_datetime(df['discharge_date'])
+
+# Compute LOS as (discharge - admit + 1)
+df['los'] = (df['discharge_date'] - df['admit_date']).dt.days + 1
+
 
 
