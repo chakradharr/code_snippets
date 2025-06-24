@@ -306,4 +306,33 @@ plt.xlim(-10, 20)  # Focus on range of interest
 plt.grid(True)
 plt.show()
 
+#### 0626
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Assume df['days_before_admit'] already exists
+
+# Define bins (customize as needed)
+bins = np.arange(-10, 21, 2)  # bins from -10 to 20 with step size 2
+
+# Bin the data
+counts, bin_edges = np.histogram(df['days_before_admit'], bins=bins)
+
+# Convert counts to percentages
+percentages = counts / counts.sum() * 100
+
+# Midpoints for plotting
+bin_midpoints = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+# Plot
+plt.figure(figsize=(10, 6))
+plt.bar(bin_midpoints, percentages, width=1.8, edgecolor='black')
+
+plt.title('Percentage of Patients by Days Between Score and Admit Date')
+plt.xlabel('Days Before Admit Date (score_eff_dt - admit_dt)')
+plt.ylabel('Percentage of Patients')
+plt.xticks(bin_edges)
+plt.grid(True)
+plt.show()
