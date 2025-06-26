@@ -384,5 +384,12 @@ df['discharge_date'] = pd.to_datetime(df['discharge_date'])
 # Compute LOS as (discharge - admit + 1)
 df['los'] = (df['discharge_date'] - df['admit_date']).dt.days + 1
 
+####0626
 
+# How many were scored before vs. after admission?
+before_ct  = (df["days_before_admit"] >  0).sum()
+after_ct   = (df["days_before_admit"] <= 0).sum()
+
+print(f"Scored BEFORE admit: {before_ct:,.0f}")
+print(f"Scored AFTER  admit: {after_ct:,.0f}")
 
