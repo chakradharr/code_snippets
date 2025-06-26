@@ -386,33 +386,37 @@ df['los'] = (df['discharge_date'] - df['admit_date']).dt.days + 1
 
 ####0626
 
-# How many were scored before vs. after admission?
-before_ct  = (df["days_before_admit"] >  0).sum()
-after_ct   = (df["days_before_admit"] <= 0).sum()
-
-print(f"Scored BEFORE admit: {before_ct:,.0f}")
-print(f"Scored AFTER  admit: {after_ct:,.0f}")
-
-# Set bounds using percentiles (e.g., 1st to 99th)
-lower_bound = df['days_before_admit'].quantile(0.01)
-upper_bound = df['days_before_admit'].quantile(0.99)
-
-# Filter data within bounds
-filtered_df = df[(df['days_before_admit'] >= lower_bound) & (df['days_before_admit'] <= upper_bound)]
-
-# Plot histogram
 import matplotlib.pyplot as plt
+import numpy as np
 
+# Define bin edges manually from -35 to +5 (every 1 day)
+bin_edges = np.arange(-35, 6, 1)
+
+# Plot histogram as percentages
 plt.figure(figsize=(12, 6))
-plt.hist(filtered_df['days_before_admit'], bins=40, edgecolor='black', color='skyblue')
+n, bins, patches = plt.hist(
+    filtered_df['days_before_admit'],
+    bins=bin_edges,
+    edgecolor='black',
+    color='skyblue',
+    density=True
+)
 
+# Convert frequencies to percentages
+percentages = n * 100
+for patch, pct in zip(patches, percentages):
+    patch.set_height(pct)
+
+# Vertical line at day 0
 plt.axvline(x=0, color='red', linestyle='--', label='Admit Date (0 days)')
-plt.title('Distribution of Days (Score Eff Date vs Admit Date) – Outliers Removed', fontsize=14)
+
+# Axis labels and title
+plt.title('Percentage Distribution of Days (Score Eff Date vs Admit Date)', fontsize=14)
 plt.xlabel('Days Before Admit (Positive = Scored Before Admission)', fontsize=12)
-plt.ylabel('Number of Members', fontsize=12)
+plt.ylabel('Percentage of Members (%)', fontsize=12)
+plt.xticks(np.arange(-35, 6, 5))  # Clean x-axis ticks
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-
 
