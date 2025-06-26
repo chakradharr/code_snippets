@@ -393,3 +393,26 @@ after_ct   = (df["days_before_admit"] <= 0).sum()
 print(f"Scored BEFORE admit: {before_ct:,.0f}")
 print(f"Scored AFTER  admit: {after_ct:,.0f}")
 
+# Set bounds using percentiles (e.g., 1st to 99th)
+lower_bound = df['days_before_admit'].quantile(0.01)
+upper_bound = df['days_before_admit'].quantile(0.99)
+
+# Filter data within bounds
+filtered_df = df[(df['days_before_admit'] >= lower_bound) & (df['days_before_admit'] <= upper_bound)]
+
+# Plot histogram
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12, 6))
+plt.hist(filtered_df['days_before_admit'], bins=40, edgecolor='black', color='skyblue')
+
+plt.axvline(x=0, color='red', linestyle='--', label='Admit Date (0 days)')
+plt.title('Distribution of Days (Score Eff Date vs Admit Date) – Outliers Removed', fontsize=14)
+plt.xlabel('Days Before Admit (Positive = Scored Before Admission)', fontsize=12)
+plt.ylabel('Number of Members', fontsize=12)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
