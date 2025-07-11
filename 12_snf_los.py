@@ -485,3 +485,47 @@ df = pd.concat(dfs, ignore_index=True)
 
 
 
+#### 0711
+
+
+import pandas as pd
+import numpy as np
+
+def get_metrics_by_percentiles(df, score_col='rap_score', los_col='snf_los', los_threshold=10, percentiles=[5, 10, 15, 20, 25]):
+    results = []
+
+    for perc in percentiles:
+        score_cutoff = np.percentile(df[score_col], perc)
+        y_true = (df[los_col] <= los_threshold).astype(int)
+        y_pred = (df[score_col] <= score_cutoff).astype(int)  # "low" scores for short LOS
+
+        tp = ((y_true == 1) & (y_pred == 1)).sum()
+        tn = ((y_true == 0) & (y_pred == 0)).sum()
+        fp = ((y_true == 0) & (y_pred == 1)).sum()
+        fn = ((y_true == 1) & (y_pred == 0)).sum()
+
+        sensitivity = round(tp / (tp + fn), 2) if (tp + fn) else None
+        specificity = round(tn / (tn + fp), 2) if (tn + fp) else None
+        ppv = round(tp / (tp + fp), 2) if (tp + fp) else None
+        npv = round(tn / (tn + fn), 2) if (tn + fn) else None
+        accuracy = round((tp + tn) / (tp + tn + fp + fn), 2)
+        lift = round((ppv / ((tp + fp) / len(df))), 2) if (tp + fp) else None
+        identified = round(((tp + fp) / len(df)) * 100, 2)
+
+        results.append({
+            'Percentile': f'Top {perc}%',
+            'Score Cutoff': round(score_cutoff, 2),
+            'Sensitivity': sensitivity,
+            'Specificity': specificity,
+            'PPV': ppv,
+            'NPV': npv,
+            'Accuracy': accuracy,
+            'Lift': lift,
+            '% Identified': identified
+        })
+
+    return pd.DataFrame(results)
+
+
+
+
