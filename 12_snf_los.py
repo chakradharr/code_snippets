@@ -525,6 +525,45 @@ def get_metrics_by_percentiles(df, score_col='rap_score', los_col='snf_los', los
         })
 
     return pd.DataFrame(results)
+    
+    
+### grpah
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Manually enter the data
+data = {
+    'RAP Score Cutoff': [22.05, 24.67, 27.68, 31.48, 36.03, 41.89],
+    'Sensitivity': [0.37, 0.32, 0.27, 0.21, 0.16, 0.11],
+    'Specificity': [0.66, 0.71, 0.76, 0.81, 0.86, 0.91],
+    'PPV': [0.38, 0.38, 0.38, 0.38, 0.38, 0.39],
+    'Accuracy': [0.56, 0.57, 0.58, 0.60, 0.61, 0.62]
+}
+
+df = pd.DataFrame(data)
+
+# Plot
+plt.figure(figsize=(10, 6))
+plt.plot(df['RAP Score Cutoff'], df['Sensitivity'], marker='o', label='Sensitivity')
+plt.plot(df['RAP Score Cutoff'], df['Specificity'], marker='o', label='Specificity')
+plt.plot(df['RAP Score Cutoff'], df['PPV'], marker='o', label='PPV')
+plt.plot(df['RAP Score Cutoff'], df['Accuracy'], marker='o', label='Accuracy')
+
+# Add vertical threshold line at Top 20% (RAP Score ~36.03)
+threshold = 36.03
+plt.axvline(x=threshold, color='red', linestyle='--', linewidth=1.5, label='Top 20% Threshold')
+plt.text(threshold + 0.3, 0.45, f'Top 20%\n({threshold})', color='red', fontsize=9)
+
+# Labels and formatting
+plt.xlabel('RAP Score Cutoff')
+plt.ylabel('Metric Value')
+plt.title('Evaluating RAP Score for Predicting Long SNF Stays (LOS ≥ 20 Days)')
+plt.ylim(0, 1)
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
 
 
 
