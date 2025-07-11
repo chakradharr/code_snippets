@@ -442,6 +442,45 @@ query_job = bq_client.query(query)
 df = query_job.result().to_dataframe(bqstorage_client=bq_storage_client)
 
 
+### added progress bar 
+
+
+from google.cloud import bigquery
+from google.cloud import bigquery_storage_v1
+from google.auth import default
+from tqdm import tqdm
+import pandas as pd
+
+credentials, project_id = default()
+bq_client = bigquery.Client(credentials=credentials, project=project_id)
+bq_storage_client = bigquery_storage_v1.BigQueryReadClient(credentials=credentials)
+
+query = """SELECT * FROM `your_project.your_dataset.your_table`"""
+query_job = bq_client.query(query)
+query_job.result()  # Wait for job to finish
+
+# Get reference to destination table
+destination = query_job.destination
+table_ref = destination.to_bqstorage()
+
+# Create read session with parallel streams
+session = bq_storage_client.create_read_session(
+    parent=f"projects/{project_id}",
+    read_session=bigquery_storage_v1.types.ReadSession(
+        table=table_ref,
+        data_format=bigquery_storage_v1.types.DataFormat.ARROW,
+    ),
+    max_stream_count=10,  # Controls parallelism; adjust for your machine
+)
+
+# Monitor progress across streams
+dfs = []
+for stream in tqdm(session.streams, desc="Downloading streams"):
+    reader = bq_storage_client.read_rows(stream.name)
+    dfs.append(reader.to_dataframe())
+
+# Concatenate all partitions
+df = pd.concat(dfs, ignore_index=True)
 
 
 
