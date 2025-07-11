@@ -420,3 +420,29 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+
+
+
+#### 0711
+
+df = client.query(sql).result().to_dataframe(progress_bar_type='tqdm')
+
+from google.cloud import bigquery
+from google.cloud import bigquery_storage
+from google.auth import default
+
+credentials, project_id = default()
+bq_client = bigquery.Client(credentials=credentials, project=project_id)
+bq_storage_client = bigquery_storage.BigQueryReadClient(credentials=credentials)
+
+query = """SELECT * FROM `your_project.your_dataset.your_table`"""  # Your actual query
+query_job = bq_client.query(query)
+
+# Stream efficiently using BigQuery Storage API
+df = query_job.result().to_dataframe(bqstorage_client=bq_storage_client)
+
+
+
+
+
+
