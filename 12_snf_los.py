@@ -567,4 +567,33 @@ plt.show()
 
 
 
+-- Simulate table_a with duplicates and NULLs
+WITH table_a AS (
+  SELECT 1 AS individual_id UNION ALL
+  SELECT 1 UNION ALL
+  SELECT 2 UNION ALL
+  SELECT NULL
+),
 
+-- Simulate table_b with duplicates and NULLs
+table_b AS (
+  SELECT 2 AS individual_id UNION ALL
+  SELECT 3 UNION ALL
+  SELECT 3 UNION ALL
+  SELECT NULL
+),
+
+-- Step 1: LEFT JOIN table_a to table_b
+cte_c AS (
+  SELECT a.individual_id
+  FROM table_a a
+  LEFT JOIN table_b b
+    ON a.individual_id = b.individual_id
+)
+
+-- Step 2: LEFT JOIN cte_c to table_a again and check for missing matches
+SELECT c.individual_id
+FROM cte_c c
+LEFT JOIN table_a d
+  ON c.individual_id = d.individual_id
+WHERE d.individual_id IS NULL;
