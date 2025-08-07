@@ -597,3 +597,42 @@ FROM cte_c c
 LEFT JOIN table_a d
   ON c.individual_id = d.individual_id
 WHERE d.individual_id IS NULL;
+
+
+
+
+
+6. GOALS
+
+Christine completed the key objectives laid out for her internship, including comparative analysis of RAP models, enhancing the Gemini Flash pipeline, and retraining commercial models. She showed solid follow-through on assigned tasks and was able to deliver working outputs despite early infrastructure setbacks. She successfully met her goals, though there is still room to deepen exploration of advanced modeling approaches and data strategies.
+
+⸻
+
+7. HEART AT WORK BEHAVIORS
+
+Christine demonstrated strong collaboration with teammates and cross-functional groups, especially during the initial weeks when GCP issues delayed progress. She stayed engaged, took feedback well, and contributed to improving team workflows. Her willingness to step up and communicate across teams reflects the values of joining forces, rising to the challenge, and creating simplicity.
+
+⸻
+
+8. OVERALL PERFORMANCE
+
+Christine made meaningful progress in her project, particularly in improving pipeline efficiency and retraining models. She displayed good ownership of her work and adapted well when facing technical blockers. While she completed her goals successfully, there’s potential to elevate her impact by proactively exploring alternate modeling approaches and thinking more strategically about data and feature design.
+
+⸻
+
+9. STRENGTHS
+	•	Strong debugging and optimization skills
+	•	Good collaboration and follow-up with platform teams
+	•	Reliable in executing well-defined tasks
+	•	Fast learner when working with new tools and ML pipelines
+
+⸻
+
+10. AREAS FOR IMPROVEMENT
+
+Christine would benefit from developing a stronger modeling mindset—thinking more critically about how input features (like clinical notes) are selected, engineered, and tuned for performance. Exploring different modeling strategies, prompt enhancements, and approaches beyond the existing pipeline would help strengthen her contributions in future roles.
+
+
+
+
+
