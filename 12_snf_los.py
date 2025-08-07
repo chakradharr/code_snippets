@@ -633,6 +633,37 @@ Christine made meaningful progress in her project, particularly in improving pip
 Christine would benefit from developing a stronger modeling mindset—thinking more critically about how input features (like clinical notes) are selected, engineered, and tuned for performance. Exploring different modeling strategies, prompt enhancements, and approaches beyond the existing pipeline would help strengthen her contributions in future roles.
 
 
+### more human way
+6. GOALS
+
+Christine did a great job completing the goals we set at the start of her internship. Despite some early delays due to GCP access issues, she stayed on track and delivered solid work — including improving the Gemini Flash pipeline, retraining both Medicare and Commercial models, and comparing their performance. I do think there’s still room to explore more creative modeling strategies, but overall, she met her objectives well.
+
+⸻
+
+7. HEART AT WORK BEHAVIORS
+
+Christine showed strong collaboration throughout her internship, especially during the early weeks when platform issues slowed things down. She worked closely with our team, stayed positive, and was proactive in reaching out to others to resolve blockers. Her willingness to adapt, listen, and learn from different perspectives really aligned well with our team’s culture and values.
+
+⸻
+
+8. OVERALL PERFORMANCE
+
+Overall, Christine performed well given the challenges. She was able to independently improve pipeline efficiency, retrain models, and contribute to key pieces of work. While she executed her tasks well, I would have liked to see more curiosity around experimenting with new ideas or asking “what else can we try?” from a modeling perspective. Still, she showed a solid foundation and great potential to grow with more time and experience.
+
+⸻
+
+9. STRENGTHS
+	•	Great at following through on tasks and delivering results
+	•	Strong at troubleshooting and optimizing code
+	•	Communicates well with team members and collaborates effectively
+	•	Picks up new tools and workflows quickly
+
+⸻
+
+10. AREAS FOR IMPROVEMENT
+
+Christine could grow by thinking more critically about modeling choices and experimenting beyond the current setup. For example, trying different time windows for notes, playing with prompt tuning, or suggesting new features to test. With a bit more time and confidence, I think she’ll get there.
+
 
 
 
