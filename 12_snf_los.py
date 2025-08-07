@@ -1,4 +1,33 @@
+6. GOALS
 
+Christine successfully met the goals outlined at the start of her internship. She familiarized herself with the RAP model pipelines and associated codebase, retrained both the Commercial and Medicare models using LLM-derived clinical notes, and conducted a thorough comparative analysis to evaluate performance impacts. Despite infrastructure delays early on, she showed good follow-through and delivered on all planned objectives.
+
+⸻
+
+7. HEART AT WORK BEHAVIORS
+
+Christine demonstrated strong collaboration and adaptability throughout her internship. She proactively engaged with cross-functional teams — particularly when GCP infrastructure issues slowed down early progress — and followed up diligently with platform and engineering teams. Her willingness to listen, take feedback, and work independently while contributing to shared goals reflected the team’s values of ownership, teamwork, and continuous improvement.
+
+⸻
+
+8. OVERALL PERFORMANCE
+
+Christine showed initiative and ownership over her project, especially in technical areas like optimizing the Gemini Flash pipeline. She significantly improved performance by fine-tuning API limits, adding error handling, and leveraging multithreading. She was dependable in executing scoped tasks, communicated clearly, and collaborated well across teams. Her work built a strong foundation for future scaling and demonstrated solid technical capabilities.
+
+⸻
+
+9. STRENGTHS
+	•	Strong initiative in owning and executing her assigned project
+	•	Quick learner when working with new modeling methodologies and tools
+	•	Resolved technical issues independently, including API optimization and GCP blockers
+	•	Excellent collaborator with clear and timely communication
+	•	Dependable in delivering results with minimal supervision
+
+⸻
+
+10. AREAS FOR IMPROVEMENT
+
+Christine is still developing her understanding of some foundational RAP modeling concepts — especially around discrete-time survival modeling, why we expand datasets, and how to structure and validate cohorts correctly across train/test/validation splits. She would benefit from thinking more critically about the modeling process — for example, exploring different time windows for clinical notes, validating query logic, or suggesting alternative feature engineering strategies. These areas will help her connect the dots better and contribute more strategically in future roles.
 
 # Define thresholds
 short_los_threshold = 10
