@@ -664,6 +664,37 @@ Overall, Christine performed well given the challenges. She was able to independ
 
 Christine could grow by thinking more critically about modeling choices and experimenting beyond the current setup. For example, trying different time windows for notes, playing with prompt tuning, or suggesting new features to test. With a bit more time and confidence, I think she’ll get there.
 
+##### 0808
 
+6. GOALS
+
+Christine successfully completed all key goals of her internship. She gained a strong understanding of the RAP model pipelines, became familiar with the codebase, and retrained both the Medicare and Commercial models by integrating clinical notes features to improve performance. She also conducted a detailed comparative analysis to assess the impact of different features and modeling strategies. Despite early infrastructure issues, she stayed focused and delivered on time.
+
+⸻
+
+7. HEART AT WORK BEHAVIORS
+
+Christine demonstrated excellent collaboration and adaptability throughout her internship. She proactively worked with cross-functional teams, especially during the initial weeks when GCP issues delayed access. She consistently took initiative, communicated clearly, and supported others — all while contributing to shared goals. Her positive attitude and willingness to take on challenges were a great fit for our team culture.
+
+⸻
+
+8. OVERALL PERFORMANCE
+
+Overall, Christine made strong progress in her work. She independently improved the Gemini Flash pipeline, increasing processing speed by nearly 20x through multithreading and error handling. She followed through on all deliverables, engaged actively in discussions, and made meaningful contributions to model development and evaluation. She was dependable, thoughtful, and eager to learn.
+
+⸻
+
+9. STRENGTHS
+	•	Took ownership of technical tasks and delivered consistently
+	•	Improved pipeline efficiency and robustness significantly
+	•	Strong collaboration and communication with teammates and platform teams
+	•	Quick learner and adaptable to new tools and challenges
+	•	Reliable in executing tasks with minimal guidance
+
+⸻
+
+10. AREAS FOR IMPROVEMENT
+
+Christine would benefit from deepening her understanding of modeling methodology — particularly around discrete-time survival models, why dataset expansion is needed, and how to validate data structure and cohort logic. She could also grow by exploring strategies beyond the current pipeline — such as experimenting with different time windows for clinical note features, tuning LLM prompts, or proposing new features to test. These steps would help her build a stronger modeling mindset and contribute more strategically in future roles.
 
 
