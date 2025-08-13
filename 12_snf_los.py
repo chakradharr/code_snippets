@@ -1,3 +1,22 @@
+# Aetna GitHub Enterprise
+Host github-aetna
+    HostName github.aetna.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_aetna
+    IdentitiesOnly yes
+
+# Personal GitHub
+Host github-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_github
+    IdentitiesOnly yes
+
+
+
+
+
+
 6. GOALS
 
 Christine successfully met the goals outlined at the start of her internship. She familiarized herself with the RAP model pipelines and associated codebase, retrained both the Commercial and Medicare models using LLM-derived clinical notes, and conducted a thorough comparative analysis to evaluate performance impacts. Despite infrastructure delays early on, she showed good follow-through and delivered on all planned objectives.
