@@ -13,7 +13,15 @@ Host github-personal
     IdentitiesOnly yes
 
 
+# Start ssh-agent if not running
+if ! pgrep -u "$USER" ssh-agent >/dev/null 2>&1; then
+  eval "$(ssh-agent -s)" >/dev/null
+fi
 
+# Add keys (ignore errors if already added)
+ssh-add -l >/dev/null 2>&1 || true
+ssh-add ~/.ssh/id_ed25519_aetna 2>/dev/null || true
+ssh-add ~/.ssh/id_ed25519_github 2>/dev/null || true
 
 
 
