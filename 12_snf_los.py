@@ -1,3 +1,140 @@
+#0826
+
+-- ========= EDIT IF NEEDED =========
+DECLARE TREATMENT_TABLE STRING DEFAULT 'anbc-hcb-dev.clin_analytics_hcb_dev.a538985_er_eval_version2_study_cohort_01';
+DECLARE CONTROL_POOL_TABLE STRING DEFAULT 'anbc-hcb-dev.clin_analytics_hcb_dev.a538985_er_eval_version2_randomized_control_with_er_id';
+-- CONTROL_POOL_TABLE columns (from your screenshot): member_id, business_ln_cd, eff_dt_last (DATE; month-end)
+-- TREATMENT_TABLE columns: edw_mbr_id, engaged, engaged_date, targeted, targeted_date, cohort_type, index_dt (etc.)
+-- =================================
+
+-- 1) Treatment monthly distributions we need to mirror
+WITH treat AS (
+  SELECT
+    CAST(edw_mbr_id AS STRING) AS mbr_id,
+    engaged,
+    targeted,
+    SAFE.DATE(engaged_date)  AS engaged_dt,
+    SAFE.DATE(targeted_date) AS targeted_dt
+  FROM `${TREATMENT_TABLE}`
+),
+
+treat_months AS (
+  SELECT
+    -- month start is easier for joins
+    DATE_TRUNC(engaged_dt,  MONTH) AS eng_index_month,
+    DATE_TRUNC(targeted_dt, MONTH) AS itt_index_month,
+    mbr_id,
+    engaged,
+    targeted
+  FROM treat
+),
+
+eng_dist AS (
+  SELECT eng_index_month AS index_month, COUNT(DISTINCT mbr_id) AS engaged_cnt
+  FROM treat_months
+  WHERE engaged = 1 AND eng_index_month IS NOT NULL
+  GROUP BY 1
+),
+itt_dist AS (
+  SELECT itt_index_month AS index_month, COUNT(DISTINCT mbr_id) AS itt_cnt
+  FROM treat_months
+  WHERE targeted = 1 AND itt_index_month IS NOT NULL
+  GROUP BY 1
+),
+
+-- 2) Control pool (already filtered to “>4 ER in prior 6m” and membership window in your prep)
+--    Normalize to month start so it aligns with eng_dist / itt_dist.
+control_pool_by_month AS (
+  SELECT
+    CAST(member_id AS STRING) AS mbr_id,
+    DATE_TRUNC(SAFE.DATE(eff_dt_last), MONTH) AS index_month  -- month start
+  FROM `${CONTROL_POOL_TABLE}`
+  WHERE eff_dt_last IS NOT NULL
+),
+
+-- 3) Assign exactly ONE canonical month per control member (stable random).
+--    This guarantees no control appears more than once across months/cohorts.
+assigned_controls AS (
+  SELECT mbr_id, index_month AS assigned_month
+  FROM (
+    SELECT
+      mbr_id,
+      index_month,
+      ROW_NUMBER() OVER (
+        PARTITION BY mbr_id
+        ORDER BY RAND(CAST(FARM_FINGERPRINT(mbr_id) AS INT64))  -- stable seed
+      ) AS rn
+    FROM control_pool_by_month
+  )
+  WHERE rn = 1
+),
+
+-- 4) CONTROL for ENGAGED: sample per month = engaged_cnt
+control_engaged AS (
+  SELECT
+    ac.mbr_id,
+    ac.assigned_month AS index_month,
+    'ENGAGED_CONTROL' AS control_cohort
+  FROM assigned_controls ac
+  JOIN eng_dist ed
+    ON ed.index_month = ac.assigned_month
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY ac.assigned_month
+    ORDER BY RAND(CAST(FARM_FINGERPRINT(ac.mbr_id) AS INT64))
+  ) <= ed.engaged_cnt
+),
+
+-- 5) CONTROL for ITT: sample per month = itt_cnt, EXCLUDING any member used in ENGAGED
+control_itt AS (
+  SELECT
+    ac.mbr_id,
+    ac.assigned_month AS index_month,
+    'ITT_CONTROL' AS control_cohort
+  FROM assigned_controls ac
+  JOIN itt_dist id
+    ON id.index_month = ac.assigned_month
+  LEFT JOIN control_engaged ce
+    ON ce.mbr_id = ac.mbr_id    -- ensure disjoint control sets
+  WHERE ce.mbr_id IS NULL
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY ac.assigned_month
+    ORDER BY RAND(CAST(FARM_FINGERPRINT(CONCAT(ac.mbr_id,'|ITT')) AS INT64))
+  ) <= id.itt_cnt
+)
+
+-- 6) Final outputs (two separate selects). You can CREATE TABLE AS SELECT if desired.
+SELECT * FROM control_engaged
+UNION ALL
+SELECT * FROM control_itt
+ORDER BY control_cohort, index_month, mbr_id;
+
+
+WITH need AS (
+  SELECT 'ENGAGED' grp, * FROM eng_dist
+  UNION ALL
+  SELECT 'ITT' grp, * FROM itt_dist
+),
+have AS (
+  SELECT 'ENGAGED' grp, index_month, COUNT(*) cnt FROM control_engaged GROUP BY 1,2
+  UNION ALL
+  SELECT 'ITT' grp, index_month, COUNT(*) cnt FROM control_itt GROUP BY 1,2
+)
+SELECT n.grp, n.index_month, 
+       COALESCE(CASE WHEN n.grp='ENGAGED' THEN n.engaged_cnt ELSE n.itt_cnt END,0) AS need_cnt,
+       COALESCE(h.cnt,0) AS have_cnt,
+       COALESCE(CASE WHEN n.grp='ENGAGED' THEN n.engaged_cnt ELSE n.itt_cnt END,0) - COALESCE(h.cnt,0) AS short_by
+FROM need n
+LEFT JOIN have h USING (grp, index_month)
+ORDER BY grp, index_month;
+
+
+
+
+
+
+
+
+
 
 # 0826
 
