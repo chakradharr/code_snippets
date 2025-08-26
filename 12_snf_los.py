@@ -1,3 +1,72 @@
+
+# 0826
+
+WITH treat AS (
+  SELECT
+    member_id,
+    DATE_TRUNC(index_date, MONTH) AS index_month,
+    cohort_type   -- 'targeted' or 'engaged'
+  FROM `proj.ds.treatment_table`
+),
+
+-- counts of treated per month and cohort_type
+treat_counts AS (
+  SELECT
+    index_month,
+    cohort_type,
+    COUNT(*) AS n_treated
+  FROM treat
+  GROUP BY 1,2
+),
+
+-- control candidates (large pool)
+control_pool AS (
+  SELECT
+    member_id,
+    DATE_TRUNC(index_date, MONTH) AS index_month
+    -- you can also add dummy cohort_type = 'targeted' or 'engaged'
+    -- if you want to draw separately for both
+  FROM `proj.ds.control_candidates`
+),
+
+-- rank control candidates within each month
+control_ranked AS (
+  SELECT
+    c.member_id,
+    c.index_month,
+    -- random rank per month
+    ROW_NUMBER() OVER (PARTITION BY c.index_month ORDER BY RAND()) AS rn
+  FROM control_pool c
+),
+
+-- now select matched controls for each cohort_type
+control_matched AS (
+  SELECT
+    t.cohort_type,
+    r.member_id,
+    r.index_month
+  FROM treat_counts t
+  JOIN control_ranked r
+    ON r.index_month = t.index_month
+  WHERE r.rn <= t.n_treated
+)
+
+SELECT * FROM control_matched;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Aetna GitHub Enterprise
 Host github-aetna
     HostName github.aetna.com
