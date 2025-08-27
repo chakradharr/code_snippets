@@ -1,3 +1,30 @@
+-- PREV 6 FULL MONTHS: from 1st of month 6 months before eff_dt
+--                     to last day of month 1 month before eff_dt
+CASE
+  WHEN DATE_TRUNC(m.eff_dt, MONTH) BETWEEN
+           DATE_TRUNC(DATE_SUB(a.eff_dt, INTERVAL 6 MONTH), MONTH)             -- e.g. 2024-01-01
+       AND DATE_SUB(DATE_TRUNC(DATE_SUB(a.eff_dt, INTERVAL 1 MONTH), MONTH) 
+                    + INTERVAL 1 MONTH, INTERVAL 1 DAY)                        -- e.g. 2024-06-30
+  THEN 1 ELSE 0
+END AS prev_6m,
+
+-- POST 3 FULL MONTHS: from 1st of month 1 month after eff_dt
+--                     to last day of month 3 months after eff_dt
+CASE
+  WHEN DATE_TRUNC(m.eff_dt, MONTH) BETWEEN
+           DATE_TRUNC(DATE_ADD(a.eff_dt, INTERVAL 1 MONTH), MONTH)             -- e.g. 2024-08-01
+       AND DATE_SUB(DATE_TRUNC(DATE_ADD(a.eff_dt, INTERVAL 3 MONTH), MONTH) 
+                    + INTERVAL 1 MONTH, INTERVAL 1 DAY)                        -- e.g. 2024-10-31
+  THEN 1 ELSE 0
+END AS post_3m
+
+
+
+
+
+
+
+
 #0826
 
 -- ========= EDIT IF NEEDED =========
