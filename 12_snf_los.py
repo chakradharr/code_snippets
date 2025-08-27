@@ -1,9 +1,14 @@
 
-%pip install "google-cloud-bigquery<3.12" \
-             "google-auth<3" \
-             "google-auth-impersonated-credentials<1" \
-             pandas-gbq db-dtypes pyarrow
+%pip uninstall -y google-auth google-cloud-bigquery google-auth-impersonated-credentials google-cloud-core googleapis-common-protos
 
+%pip install \
+  google-cloud-bigquery==3.11.4 \
+  google-auth==2.23.4 \
+  google-auth-impersonated-credentials==2.1.0 \
+  google-cloud-core==2.3.3 \
+  pandas-gbq==0.22.0 \
+  db-dtypes==1.2.0 \
+  pyarrow==10.0.1
 
 
 
