@@ -1,4 +1,12 @@
 
+%pip install "google-cloud-bigquery<3.12" \
+             "google-auth<3" \
+             "google-auth-impersonated-credentials<1" \
+             pandas-gbq db-dtypes pyarrow
+
+
+
+
 %pip install -U google-cloud-bigquery google-auth google-auth-impersonated-credentials pandas-gbq db-dtypes pyarrow
 
 # 1) Activate the env you created
