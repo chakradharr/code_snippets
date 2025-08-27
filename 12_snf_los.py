@@ -1,3 +1,31 @@
+
+%pip install -U google-cloud-bigquery google-auth google-auth-impersonated-credentials pandas-gbq db-dtypes pyarrow
+
+# 1) Activate the env you created
+conda activate /home/jupyter/conda_envs/cobra_38
+
+# 2) Install/upgrade the needed packages into THIS env
+pip install -U pip setuptools wheel ipykernel \
+  google-cloud-bigquery google-auth google-auth-impersonated-credentials \
+  pandas-gbq db-dtypes pyarrow
+
+# 3) (Re)register the kernel so Jupyter can use this env
+python -m ipykernel install --name "cobra_38" --user
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- PREV 6 FULL MONTHS: from 1st of month 6 months before eff_dt
 --                     to last day of month 1 month before eff_dt
 CASE
