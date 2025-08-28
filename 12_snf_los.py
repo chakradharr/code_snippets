@@ -1,3 +1,44 @@
+
+Pre-period flags (baseline confounding)
+	•	cm_pre180_engaged → 1 if the member was engaged in any CM program in the 180 days before index (using end_dt if available, otherwise start_dt).
+	•	cm_pre90_engaged → 1 if the member was engaged in any CM program in the 90 days before index.
+	•	cm_pre180_targeted → 1 if the member was targeted in any CM program in the 180 days before index.
+	•	cm_pre90_targeted → 1 if the member was targeted in any CM program in the 90 days before index.
+
+⸻
+
+Ongoing at index flags (contamination at baseline)
+	•	cm_ongoing_at_index_engaged → 1 if the member was actively engaged in another CM program on the index date (start ≤ index ≤ end, with open-ended if end_dt missing).
+	•	cm_ongoing_at_index_targeted → 1 if the member was targeted and still open on the index date.
+
+⸻
+
+Post-period flags (contamination in follow-up)
+	•	cm_post90_start_engaged → 1 if the member started engagement in another CM program within 0–90 days after index.
+	•	cm_post90_overlap_engaged → 1 if the member had any overlap with an engagement episode during the 0–90 day post window (includes those that started before but continued).
+	•	cm_post90_start_targeted → 1 if the member was targeted for another CM program in the 0–90 days after index.
+	•	cm_post90_overlap_targeted → 1 if the member had any targeted episode overlapping with the 0–90 day post window.
+
+⸻
+
+✅ That’s it — 10 clean flags.
+Each is 0/1 per member, so your cohort stays 1 row per individual_id + index_date.
+
+⸻
+
+How to use them
+	•	Propensity (IPW model): use cm_pre180_engaged (baseline CM exposure) + vbc_flag.
+	•	DID regression adjustors: use cm_post90_start_engaged or cm_post90_overlap_engaged to adjust for post contamination.
+	•	Descriptive slides: report both engaged + targeted versions to show “touched vs active” overlap.
+	•	Sensitivity: rerun models excluding members with cm_ongoing_at_index_engaged = 1 (auto-engaged cases).
+
+
+
+
+
+
+
+
 ## new
 
 CREATE TEMP TABLE episodes AS
