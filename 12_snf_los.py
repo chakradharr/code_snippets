@@ -1,4 +1,111 @@
+## 0828
 
+
+WITH cohort AS (
+  SELECT individual_id, index_date
+  FROM `project.dataset.er_eval_version2_final_cohort`
+),
+
+prog AS (
+  SELECT
+    c.individual_id,
+    c.index_date,
+
+    -- TARGETED min/max across all programs
+    LEAST(
+      mc.min_targeted_date_rap, mc.min_targeted_date_accp,
+      mc.min_targeted_date_high, mc.min_targeted_date_medium
+    ) AS any_min_targeted_dt,
+    GREATEST(
+      mc.max_targeted_date_rap, mc.max_targeted_date_accp,
+      mc.max_targeted_date_high, mc.max_targeted_date_medium
+    ) AS any_max_targeted_dt,
+
+    -- ENGAGED min/max across all programs
+    LEAST(
+      mc.min_engaged_date_rap, mc.min_engaged_date_accp,
+      mc.min_engaged_date_high, mc.min_engaged_date_medium
+    ) AS any_min_engaged_dt,
+    GREATEST(
+      mc.max_engaged_date_rap, mc.max_engaged_date_accp,
+      mc.max_engaged_date_high, mc.max_engaged_date_medium
+    ) AS any_max_engaged_dt
+  FROM cohort c
+  LEFT JOIN `project.dataset.medcompass_activity_mc_status_program_level` mc
+    ON c.individual_id = mc.individual_id
+),
+
+-- Handle NULLs
+norm AS (
+  SELECT
+    *,
+    IFNULL(any_min_targeted_dt, DATE '9999-12-31') AS min_tar,
+    IFNULL(any_max_targeted_dt, DATE '1900-01-01') AS max_tar,
+    IFNULL(any_min_engaged_dt,  DATE '9999-12-31') AS min_eng,
+    IFNULL(any_max_engaged_dt,  DATE '1900-01-01') AS max_eng
+  FROM prog
+)
+
+SELECT
+  individual_id,
+  index_date,
+
+  -- =====================
+  -- TARGETED FLAGS
+  -- =====================
+
+  -- Pre-180 (any targeted within 6m before index)
+  CAST(max_tar BETWEEN DATE_SUB(index_date, INTERVAL 180 DAY) AND index_date AS INT64) AS cm_pre180_targeted,
+
+  -- Pre-90 (any targeted within 90d before index)
+  CAST(max_tar BETWEEN DATE_SUB(index_date, INTERVAL 90 DAY) AND index_date AS INT64)  AS cm_pre90_targeted,
+
+  -- Ongoing at index
+  CAST(min_tar <= index_date AND max_tar >= index_date AS INT64)                       AS cm_ongoing_at_index_targeted,
+
+  -- Post-90 start (newly targeted after index)
+  CAST(min_tar BETWEEN index_date AND DATE_ADD(index_date, INTERVAL 90 DAY) AS INT64)  AS cm_post90_start_targeted,
+
+  -- Post-90 overlap (any targeted episode overlapping index→+90d)
+  CAST(min_tar <= DATE_ADD(index_date, INTERVAL 90 DAY) AND max_tar >= index_date AS INT64) AS cm_post90_overlap_targeted,
+
+
+  -- =====================
+  -- ENGAGED FLAGS
+  -- =====================
+
+  -- Pre-180 (any engaged within 6m before index)
+  CAST(max_eng BETWEEN DATE_SUB(index_date, INTERVAL 180 DAY) AND index_date AS INT64) AS cm_pre180_engaged,
+
+  -- Pre-90 (any engaged within 90d before index)
+  CAST(max_eng BETWEEN DATE_SUB(index_date, INTERVAL 90 DAY) AND index_date AS INT64)  AS cm_pre90_engaged,
+
+  -- Ongoing at index
+  CAST(min_eng <= index_date AND max_eng >= index_date AS INT64)                       AS cm_ongoing_at_index_engaged,
+
+  -- Post-90 start (newly engaged after index)
+  CAST(min_eng BETWEEN index_date AND DATE_ADD(index_date, INTERVAL 90 DAY) AS INT64)  AS cm_post90_start_engaged,
+
+  -- Post-90 overlap (any engagement overlapping index→+90d)
+  CAST(min_eng <= DATE_ADD(index_date, INTERVAL 90 DAY) AND max_eng >= index_date AS INT64) AS cm_post90_overlap_engaged
+
+FROM norm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+m
 %pip uninstall -y google-auth google-cloud-bigquery google-auth-impersonated-credentials google-cloud-core googleapis-common-protos
 
 %pip install \
