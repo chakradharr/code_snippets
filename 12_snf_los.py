@@ -1,5 +1,187 @@
-## 0828
+## new
 
+CREATE TEMP TABLE episodes AS
+WITH mc AS (
+  SELECT * FROM `project.dataset.medcompass_activity_mc_status_program_level`
+),
+unified AS (
+  -- ENGAGED episodes
+  SELECT individual_id, 'ENGAGED' AS episode_type, 'RAP' AS program,
+         min_engaged_date_rap  AS start_dt, max_engaged_date_rap  AS end_dt FROM mc
+  UNION ALL SELECT individual_id, 'ENGAGED', 'ACCP',  min_engaged_date_accp,  max_engaged_date_accp  FROM mc
+  UNION ALL SELECT individual_id, 'ENGAGED', 'HIGH',  min_engaged_date_high,  max_engaged_date_high  FROM mc
+  UNION ALL SELECT individual_id, 'ENGAGED', 'MED',   min_engaged_date_medium,max_engaged_date_medium FROM mc
+
+  UNION ALL
+  -- TARGETED episodes
+  SELECT individual_id, 'TARGETED', 'RAP',  min_targeted_date_rap,  max_targeted_date_rap  FROM mc
+  UNION ALL SELECT individual_id, 'TARGETED', 'ACCP', min_targeted_date_accp, max_targeted_date_accp FROM mc
+  UNION ALL SELECT individual_id, 'TARGETED', 'HIGH', min_targeted_date_high, max_targeted_date_high FROM mc
+  UNION ALL SELECT individual_id, 'TARGETED', 'MED',  min_targeted_date_medium, max_targeted_date_medium FROM mc
+)
+SELECT individual_id, episode_type, program, start_dt, end_dt
+FROM unified
+WHERE start_dt IS NOT NULL OR end_dt IS NOT NULL;   -- keep only real episodes
+
+
+CREATE TEMP TABLE pre_flags AS
+WITH e AS (
+  SELECT e.*, c.index_date,
+         -- last_touch = end_dt if present, else start_dt
+         COALESCE(e.end_dt, e.start_dt) AS last_touch
+  FROM episodes e
+  JOIN cohort  c USING (individual_id)
+),
+-- choose closest (latest) episode in PRE-180 by episode_type
+pre180 AS (
+  SELECT individual_id, episode_type,
+         ARRAY_AGG(STRUCT(program, last_touch) ORDER BY last_touch DESC LIMIT 1)[OFFSET(0)] AS pick
+  FROM e
+  WHERE last_touch BETWEEN DATE_SUB(index_date, INTERVAL 180 DAY) AND index_date
+  GROUP BY individual_id, episode_type
+),
+-- choose closest (latest) episode in PRE-90 by episode_type
+pre90 AS (
+  SELECT individual_id, episode_type,
+         ARRAY_AGG(STRUCT(program, last_touch) ORDER BY last_touch DESC LIMIT 1)[OFFSET(0)] AS pick
+  FROM e
+  WHERE last_touch BETWEEN DATE_SUB(index_date, INTERVAL 90 DAY) AND index_date
+  GROUP BY individual_id, episode_type
+),
+-- ongoing at index: episodes with start <= index <= end
+ongoing AS (
+  SELECT individual_id, episode_type,
+         -- pick the one that started most recently before index (closest active episode)
+         ARRAY_AGG(STRUCT(program, start_dt, end_dt) ORDER BY start_dt DESC LIMIT 1)[OFFSET(0)] AS pick
+  FROM (
+    SELECT e.*,
+           -- treat NULL end as far-future for overlap check only
+           IFNULL(e.end_dt, DATE '9999-12-31') AS end_for_overlap
+    FROM e
+  ) x
+  WHERE x.start_dt <= x.index_date AND x.end_for_overlap >= x.index_date
+  GROUP BY individual_id, episode_type
+)
+
+SELECT
+  c.individual_id,
+  c.index_date,
+
+  -- ENGAGED (dates + flags + program picked)
+  (SELECT pick.last_touch FROM pre180  WHERE pre180.individual_id=c.individual_id AND episode_type='ENGAGED') AS pre180_eng_dt,
+  (SELECT pick.program   FROM pre180  WHERE pre180.individual_id=c.individual_id AND episode_type='ENGAGED') AS pre180_eng_program,
+  CAST((SELECT 1 FROM pre180 WHERE pre180.individual_id=c.individual_id AND episode_type='ENGAGED') IS NOT NULL AS INT64) AS cm_pre180_engaged,
+
+  (SELECT pick.last_touch FROM pre90   WHERE pre90.individual_id =c.individual_id AND episode_type='ENGAGED') AS pre90_eng_dt,
+  (SELECT pick.program   FROM pre90   WHERE pre90.individual_id =c.individual_id AND episode_type='ENGAGED') AS pre90_eng_program,
+  CAST((SELECT 1 FROM pre90  WHERE pre90.individual_id =c.individual_id AND episode_type='ENGAGED') IS NOT NULL AS INT64) AS cm_pre90_engaged,
+
+  CAST((SELECT 1 FROM ongoing WHERE ongoing.individual_id=c.individual_id AND episode_type='ENGAGED') IS NOT NULL AS INT64) AS cm_ongoing_at_index_engaged,
+  (SELECT pick.program FROM ongoing WHERE ongoing.individual_id=c.individual_id AND episode_type='ENGAGED') AS ongoing_eng_program,
+
+  -- TARGETED (dates + flags + program picked)
+  (SELECT pick.last_touch FROM pre180  WHERE pre180.individual_id=c.individual_id AND episode_type='TARGETED') AS pre180_tar_dt,
+  (SELECT pick.program   FROM pre180  WHERE pre180.individual_id=c.individual_id AND episode_type='TARGETED') AS pre180_tar_program,
+  CAST((SELECT 1 FROM pre180 WHERE pre180.individual_id=c.individual_id AND episode_type='TARGETED') IS NOT NULL AS INT64) AS cm_pre180_targeted,
+
+  (SELECT pick.last_touch FROM pre90   WHERE pre90.individual_id =c.individual_id AND episode_type='TARGETED') AS pre90_tar_dt,
+  (SELECT pick.program   FROM pre90   WHERE pre90.individual_id =c.individual_id AND episode_type='TARGETED') AS pre90_tar_program,
+  CAST((SELECT 1 FROM pre90  WHERE pre90.individual_id =c.individual_id AND episode_type='TARGETED') IS NOT NULL AS INT64) AS cm_pre90_targeted,
+
+  CAST((SELECT 1 FROM ongoing WHERE ongoing.individual_id=c.individual_id AND episode_type='TARGETED') IS NOT NULL AS INT64) AS cm_ongoing_at_index_targeted,
+  (SELECT pick.program FROM ongoing WHERE ongoing.individual_id=c.individual_id AND episode_type='TARGETED') AS ongoing_tar_program
+
+FROM cohort c;
+
+
+
+CREATE TEMP TABLE post_flags AS
+WITH e AS (
+  SELECT e.*, c.index_date,
+         IFNULL(e.end_dt, DATE '9999-12-31') AS end_for_overlap
+  FROM episodes e
+  JOIN cohort  c USING (individual_id)
+),
+
+post_start AS (
+  SELECT individual_id, episode_type,
+         ARRAY_AGG(STRUCT(program, start_dt) ORDER BY start_dt ASC LIMIT 1)[OFFSET(0)] AS pick
+  FROM e
+  WHERE start_dt BETWEEN index_date AND DATE_ADD(index_date, INTERVAL 90 DAY)
+  GROUP BY individual_id, episode_type
+),
+
+post_overlap AS (
+  SELECT individual_id, episode_type,
+         -- among overlapping episodes, pick the one that starts earliest in/near the window
+         ARRAY_AGG(STRUCT(program, start_dt, end_for_overlap)
+                   ORDER BY start_dt ASC LIMIT 1)[OFFSET(0)] AS pick
+  FROM e
+  WHERE start_dt <= DATE_ADD(index_date, INTERVAL 90 DAY)
+    AND end_for_overlap >= index_date
+  GROUP BY individual_id, episode_type
+)
+
+SELECT
+  c.individual_id,
+  c.index_date,
+
+  -- ENGAGED post starts / overlap
+  (SELECT pick.start_dt FROM post_start   WHERE post_start.individual_id=c.individual_id AND episode_type='ENGAGED') AS post90_eng_start_dt,
+  CAST((SELECT 1         FROM post_start WHERE post_start.individual_id=c.individual_id AND episode_type='ENGAGED') IS NOT NULL AS INT64) AS cm_post90_start_engaged,
+  CAST((SELECT 1         FROM post_overlap WHERE post_overlap.individual_id=c.individual_id AND episode_type='ENGAGED') IS NOT NULL AS INT64) AS cm_post90_overlap_engaged,
+  (SELECT pick.program   FROM post_overlap WHERE post_overlap.individual_id=c.individual_id AND episode_type='ENGAGED') AS post_overlap_eng_program,
+
+  -- TARGETED post starts / overlap
+  (SELECT pick.start_dt FROM post_start   WHERE post_start.individual_id=c.individual_id AND episode_type='TARGETED') AS post90_tar_start_dt,
+  CAST((SELECT 1         FROM post_start WHERE post_start.individual_id=c.individual_id AND episode_type='TARGETED') IS NOT NULL AS INT64) AS cm_post90_start_targeted,
+  CAST((SELECT 1         FROM post_overlap WHERE post_overlap.individual_id=c.individual_id AND episode_type='TARGETED') IS NOT NULL AS INT64) AS cm_post90_overlap_targeted,
+  (SELECT pick.program   FROM post_overlap WHERE post_overlap.individual_id=c.individual_id AND episode_type='TARGETED') AS post_overlap_tar_program
+
+FROM cohort c;
+
+
+# join all tables
+
+SELECT
+  p.individual_id,
+  p.index_date,
+  -- PRE flags/dates/programs
+  pre.cm_pre180_engaged, pre.pre180_eng_dt, pre.pre180_eng_program,
+  pre.cm_pre90_engaged,  pre.pre90_eng_dt,  pre.pre90_eng_program,
+  pre.cm_ongoing_at_index_engaged, pre.ongoing_eng_program,
+  pre.cm_pre180_targeted, pre.pre180_tar_dt, pre.pre180_tar_program,
+  pre.cm_pre90_targeted,  pre.pre90_tar_dt,  pre.pre90_tar_program,
+  pre.cm_ongoing_at_index_targeted, pre.ongoing_tar_program,
+  -- POST flags/dates/programs
+  post.cm_post90_start_engaged,  post.post90_eng_start_dt,  post.cm_post90_overlap_engaged,  post.post_overlap_eng_program,
+  post.cm_post90_start_targeted, post.post90_tar_start_dt, post.cm_post90_overlap_targeted, post.post_overlap_tar_program
+FROM cohort p
+LEFT JOIN pre_flags  pre  USING (individual_id, index_date)
+LEFT JOIN post_flags post USING (individual_id, index_date);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### old
 WITH cohort AS (
   SELECT individual_id, index_date
   FROM `project.dataset.er_eval_version2_final_cohort`
