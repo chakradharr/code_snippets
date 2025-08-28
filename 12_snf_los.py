@@ -1,5 +1,133 @@
 ## 0828
 
+WITH cohort AS (
+  SELECT individual_id, index_date
+  FROM `project.dataset.er_eval_version2_final_cohort`
+),
+
+-- Pull (per member) program start/end pairs (min/max) for each program
+raw AS (
+  SELECT
+    c.individual_id, c.index_date,
+
+    -- ENGAGED windows
+    mc.min_engaged_date_rap    AS rap_e_start,    mc.max_engaged_date_rap    AS rap_e_end,
+    mc.min_engaged_date_accp   AS accp_e_start,   mc.max_engaged_date_accp   AS accp_e_end,
+    mc.min_engaged_date_high   AS high_e_start,   mc.max_engaged_date_high   AS high_e_end,
+    mc.min_engaged_date_medium AS med_e_start,    mc.max_engaged_date_medium AS med_e_end,
+
+    -- TARGETED windows
+    mc.min_targeted_date_rap    AS rap_t_start,   mc.max_targeted_date_rap    AS rap_t_end,
+    mc.min_targeted_date_accp   AS accp_t_start,  mc.max_targeted_date_accp   AS accp_t_end,
+    mc.min_targeted_date_high   AS high_t_start,  mc.max_targeted_date_high   AS high_t_end,
+    mc.min_targeted_date_medium AS med_t_start,   mc.max_targeted_date_medium AS med_t_end
+  FROM cohort c
+  LEFT JOIN `project.dataset.medcompass_activity_mc_status_program_level` mc
+    ON c.individual_id = mc.individual_id
+),
+
+-- Normalize to arrays so we can test windows with EXISTS cleanly
+norm AS (
+  SELECT
+    individual_id, index_date,
+
+    -- Treat NULL end as open-ended (still active)
+    ARRAY<STRUCT<start DATE, finish DATE>>[
+      STRUCT(rap_e_start,  COALESCE(rap_e_end,  DATE '9999-12-31')),
+      STRUCT(accp_e_start, COALESCE(accp_e_end, DATE '9999-12-31')),
+      STRUCT(high_e_start, COALESCE(high_e_end, DATE '9999-12-31')),
+      STRUCT(med_e_start,  COALESCE(med_e_end,  DATE '9999-12-31'))
+    ] AS engaged_eps,
+
+    ARRAY<STRUCT<start DATE, finish DATE>>[
+      STRUCT(rap_t_start,  COALESCE(rap_t_end,  DATE '9999-12-31')),
+      STRUCT(accp_t_start, COALESCE(accp_t_end, DATE '9999-12-31')),
+      STRUCT(high_t_start, COALESCE(high_t_end, DATE '9999-12-31')),
+      STRUCT(med_t_start,  COALESCE(med_t_end,  DATE '9999-12-31'))
+    ] AS targeted_eps
+  FROM raw
+)
+
+SELECT
+  individual_id,
+  index_date,
+
+  -- =========================
+  -- ENGAGED (per any program)
+  -- =========================
+
+  -- Pre-180 (any engagement activity recorded within 180 days prior)
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(engaged_eps) ep
+    WHERE ep.finish BETWEEN DATE_SUB(index_date, INTERVAL 180 DAY) AND index_date
+  ) AS INT64) AS cm_pre180_engaged,
+
+  -- Pre-90 (recent engagement prior to index)
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(engaged_eps) ep
+    WHERE ep.finish BETWEEN DATE_SUB(index_date, INTERVAL 90 DAY) AND index_date
+  ) AS INT64) AS cm_pre90_engaged,
+
+  -- Ongoing at index (active on index_date)
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(engaged_eps) ep
+    WHERE ep.start <= index_date AND ep.finish >= index_date
+  ) AS INT64) AS cm_ongoing_at_index_engaged,
+
+  -- Post-90 START (a new engagement begins in 0–90d after index)
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(engaged_eps) ep
+    WHERE ep.start BETWEEN index_date AND DATE_ADD(index_date, INTERVAL 90 DAY)
+  ) AS INT64) AS cm_post90_start_engaged,
+
+  -- Post-90 OVERLAP (any engagement overlaps the 0–90d window)
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(engaged_eps) ep
+    WHERE ep.start <= DATE_ADD(index_date, INTERVAL 90 DAY)
+      AND ep.finish >= index_date
+  ) AS INT64) AS cm_post90_overlap_engaged,
+
+  -- =========================
+  -- TARGETED (per any program)
+  -- =========================
+
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(targeted_eps) ep
+    WHERE ep.finish BETWEEN DATE_SUB(index_date, INTERVAL 180 DAY) AND index_date
+  ) AS INT64) AS cm_pre180_targeted,
+
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(targeted_eps) ep
+    WHERE ep.finish BETWEEN DATE_SUB(index_date, INTERVAL 90 DAY) AND index_date
+  ) AS INT64) AS cm_pre90_targeted,
+
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(targeted_eps) ep
+    WHERE ep.start <= index_date AND ep.finish >= index_date
+  ) AS INT64) AS cm_ongoing_at_index_targeted,
+
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(targeted_eps) ep
+    WHERE ep.start BETWEEN index_date AND DATE_ADD(index_date, INTERVAL 90 DAY)
+  ) AS INT64) AS cm_post90_start_targeted,
+
+  CAST(EXISTS (
+    SELECT 1 FROM UNNEST(targeted_eps) ep
+    WHERE ep.start <= DATE_ADD(index_date, INTERVAL 90 DAY)
+      AND ep.finish >= index_date
+  ) AS INT64) AS cm_post90_overlap_targeted
+
+FROM norm;
+
+
+
+
+
+
+
+
+
+
 
 WITH cohort AS (
   SELECT individual_id, index_date
