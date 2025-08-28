@@ -1,4 +1,57 @@
 
+ER Evaluation – Progress & Next Steps
+
+Findings so far
+	1.	Raw DID results (no adjustment)
+	•	Treatment group (ER diversion) shows higher ER visits post-index than control, suggesting the program is not effective at reducing ER visits.
+	•	Early signal is negative ROI at high level.
+	2.	Treatment & Control definitions
+	•	Treatment = targeted and engaged ER diversion members (subset also analyzed: engaged only).
+	•	Control = national matched population (restricted to pre 6m + post 3m continuous enrollment).
+	•	But, treatment/control differences exist because of CM program overlaps.
+	3.	Other program overlaps (contamination)
+	•	Members may already be engaged in other CM programs (RA, ACCP, High/Medium) before or during ER diversion.
+	•	If engaged elsewhere at index, ER diversion just “marks” them engaged (not true outreach).
+	•	Built flags to measure this contamination:
+	•	Pre-180/Pre-90 (recent CM exposure before index).
+	•	Ongoing at index (active CM on index date).
+	•	Post-90 start (new CM starts in follow-up).
+	•	Post-90 overlap (any CM active during follow-up).
+	4.	Data quality & CM process notes
+	•	CM sometimes don’t enter end_dt → handled by treating NULL as “still open.”
+	•	Continuous enrollment difference: controls are fully enrolled pre/post, treatment has variation — using PMPM normalizes but still worth flagging.
+
+⸻
+
+Next Steps
+	1.	Propensity/IPW adjustment
+	•	Use baseline covariates (demographics, risk scores, utilization, costs, cm_pre180_engaged, vbc_flag) to balance treatment vs control.
+	•	Avoid post variables in IPW to prevent leakage.
+	2.	DID regression refinement
+	•	Add post contamination flags (cm_post90_start_engaged, cm_post90_overlap_engaged) as adjustors.
+	•	Sensitivity: exclude members with cm_ongoing_at_index_engaged=1 to isolate “true ER diversion.”
+	3.	Descriptive reporting
+	•	Show overlap percentages: how many ERD members were already in other CM, how many picked up new CM in follow-up.
+	•	Split engaged vs targeted results to show difference in program intensity.
+	4.	Manager discussion points
+	•	Even after IPW/DID, don’t expect a big reversal: raw signal already shows no ER reduction.
+	•	Next steps help confirm robustness and clarify whether effects are driven by ER diversion vs other CM programs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Pre-period flags (baseline confounding)
 	•	cm_pre180_engaged → 1 if the member was engaged in any CM program in the 180 days before index (using end_dt if available, otherwise start_dt).
 	•	cm_pre90_engaged → 1 if the member was engaged in any CM program in the 90 days before index.
