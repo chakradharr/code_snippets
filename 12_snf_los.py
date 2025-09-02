@@ -1,3 +1,58 @@
+1. Adjustors (go into propensity / overlap weights, DID models)
+
+Use these so treatment and control are balanced at baseline:
+	•	Demographics: age, gender
+	•	Clinical risk: risk scores (IP6, Frisk, ER, Strategic), chronic count, HCC if available
+	•	Utilization & cost history: pre-ER visits (PMPM or band for engaged), IP admits, costs, HPD/polypharmacy
+	•	Enrollment: pre member months (180d)
+	•	Program contamination (baseline): cm_pre180_engaged, cm_pre90_engaged, cm_ongoing_at_index_engaged
+	•	VBC flag, PCP flag (access to coordinated care models)
+	•	SDOH flags (rural/urban, access score, LIS/dual status, subsidy)
+
+👉 Adjustors = what the model balances on so the groups are comparable.
+
+⸻
+
+2. Descriptive Stats (reporting, context only)
+
+Use these to describe populations and interpret results, but not always in PS model:
+	•	Market/state distributions (MI, IL, WI, IN)
+	•	Index month distribution
+	•	Post-period CM flags (cm_post90_start, cm_post90_overlap) → show as contamination rates, but keep out of PS model (can be DID covariates)
+	•	Breakdown by VBC, PCP, SDOH (good for context in reporting)
+
+👉 Descriptive = tells the story of who’s in program, how different they are, and contamination rates.
+
+⸻
+
+3. Exact Match Variables (PSM setup)
+
+Use for must-have identical categories before propensity score caliper matching:
+	•	Index month (align observation window)
+	•	Market/state (MI, IL, WI, IN)
+	•	LOB/product (Medicare vs DSNP)
+	•	Pre member months band (continuous enrollment buckets)
+	•	VBC flag (yes/no)
+
+👉 Exact match = avoids impossible comparisons (e.g., MI member in Jan 2024 vs WI member in Sep 2025).
+
+⸻
+
+✅ In one line to manager:
+	•	“We use CM/VBC/PCP/SDOH flags mainly as adjustors to ensure fair comparison. Some are also shown descriptively to explain program context. A few key structural ones (index month, market, LOB, enrollment) we enforce via exact matching so treated and controls are truly comparable.”
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ER Evaluation – Progress & Next Steps
 
