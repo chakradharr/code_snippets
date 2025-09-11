@@ -1,3 +1,20 @@
+#
+
+Hi Steven,
+
+Thanks for the quick response and for outlining the two implementation options.
+
+Just a quick clarification on the proposed approach to censor RAP scores for members with >30 days since admit — when you mention censoring, are you referring to setting the RAP score to zero, or simply excluding those members from being assigned a RAP score altogether?
+
+Also, one nuance I wanted to highlight: the concern around RAP score reliability beyond 30 days since admit primarily applies to cases where the discharge date is missing. In such cases, the t value (days since discharge) continues to increase artificially, and as a result, the RAP score doesn’t decay as expected — it remains constant or even high, which can misrepresent the member’s true risk.
+
+However, for members with a valid discharge date, the RAP score tends to behave as designed — decreasing as we approach 30 days from discharge — so those scores may still be reliable even if the admit date is older than 30 days.
+
+
+
+
+
+
 1. Adjustors (go into propensity / overlap weights, DID models)
 
 Use these so treatment and control are balanced at baseline:
