@@ -1,3 +1,73 @@
+-- Build one row per member–month in the window around index_date
+WITH base AS (
+  SELECT
+    sc.edw_mbr_id,
+    sc.index_dt,
+    -- normalize membership to month grain
+    DATE_TRUNC(em.eff_dt, MONTH) AS mm_start
+  FROM `project.dataset.study_cohort_01` sc
+  JOIN `edp-prod-hcbstorage.edp_hcb_core_cnsv.EMIS_MEMBERSHIP` em
+    ON em.member_id = sc.edw_mbr_id
+  -- keep only Medicare (adjust filters as needed)
+  LEFT JOIN `...PRODUCT_LINE` pl
+    ON pl.member_id = em.member_id  -- <-- if this join multiplies rows,
+  LEFT JOIN `...INDVDL_CUST_DIST` cd --     it will duplicate months; we dedup next.
+    ON cd.member_id = em.member_id
+
+  -- limit to months that could fall in the 6m pre or 3m post windows
+  WHERE em.eff_dt BETWEEN DATE_SUB(sc.index_dt, INTERVAL 6 MONTH)
+                      AND DATE_ADD(sc.index_dt, INTERVAL 3 MONTH)
+),
+
+-- Deduplicate inflated months caused by the joins
+dedup_mm AS (
+  SELECT edw_mbr_id, index_dt, mm_start
+  FROM (
+    SELECT
+      edw_mbr_id, index_dt, mm_start,
+      ROW_NUMBER() OVER (
+        PARTITION BY edw_mbr_id, index_dt, mm_start
+        ORDER BY mm_start
+      ) AS rn
+    FROM base
+  )
+  WHERE rn = 1
+),
+
+-- Count distinct months in pre/post windows (exclude index day by using -1/+1)
+mm_counts AS (
+  SELECT
+    edw_mbr_id,
+    index_dt,
+    COUNTIF(
+      mm_start BETWEEN DATE_TRUNC(DATE_SUB(index_dt, INTERVAL 6 MONTH), MONTH)
+                   AND DATE_TRUNC(DATE_SUB(index_dt, INTERVAL 1 DAY),   MONTH)
+    ) AS prev_6m,
+    COUNTIF(
+      mm_start BETWEEN DATE_TRUNC(DATE_ADD(index_dt, INTERVAL 1 DAY),   MONTH)
+                   AND DATE_TRUNC(DATE_ADD(index_dt, INTERVAL 90 DAY),  MONTH)
+    ) AS post_3m
+  FROM dedup_mm
+  GROUP BY 1,2
+)
+
+-- Attach back to your cohort
+SELECT sc.*, mc.prev_6m, mc.post_3m
+FROM `project.dataset.study_cohort_01` sc
+LEFT JOIN mm_counts mc
+  ON mc.edw_mbr_id = sc.edw_mbr_id
+ AND mc.index_dt   = sc.index_dt;
+
+
+
+
+
+
+
+
+
+
+
 -- ================================================
 -- CONTROL COHORT WITH PRE/POST MEMBER-MONTH BALANCING
 -- ================================================
