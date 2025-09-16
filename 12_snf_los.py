@@ -1,14 +1,103 @@
-#
+-- ================================================
+-- CONTROL COHORT WITH PRE/POST MEMBER-MONTH BALANCING
+-- ================================================
 
-Hi Steven,
+-- 1. Control pool by month, including pre/post member-months
+WITH control_pool_by_month AS (
+  SELECT
+    CAST(mbr_id AS STRING)      AS mbr_id,
+    DATE_TRUNC(index_date, MONTH) AS index_month,
+    prev_6m,
+    post_3m
+  FROM `project.dataset.randomized_control_with_er_id`
+  WHERE eff_dt_last IS NOT NULL
+),
 
-Thanks for the quick response and for outlining the two implementation options.
+-- 2. Assign exactly ONE canonical month per control member (stable random),
+-- partitioned by index_month + prev_6m + post_3m
+assigned_controls AS (
+  SELECT
+    mbr_id,
+    index_month,
+    prev_6m,
+    post_3m,
+    ROW_NUMBER() OVER (
+      PARTITION BY mbr_id
+      ORDER BY FARM_FINGERPRINT(CONCAT(mbr_id, '|', CAST(index_month AS STRING)))
+    ) AS rn
+  FROM control_pool_by_month
+),
+canonical_controls AS (
+  SELECT
+    mbr_id,
+    index_month,
+    prev_6m,
+    post_3m
+  FROM assigned_controls
+  WHERE rn = 1
+),
 
-Just a quick clarification on the proposed approach to censor RAP scores for members with >30 days since admit — when you mention censoring, are you referring to setting the RAP score to zero, or simply excluding those members from being assigned a RAP score altogether?
+-- 3. Match control for ENGAGED cohort:
+--    Sample per month, matching on prev_6m & post_3m as well
+control_engaged AS (
+  SELECT
+    ac.mbr_id,
+    ac.index_month,
+    ac.prev_6m,
+    ac.post_3m,
+    'ENGAGED_CONTROL' AS control_cohort
+  FROM canonical_controls ac
+  JOIN (
+    SELECT index_month, prev_6m, post_3m, COUNT(DISTINCT edw_mbr_id) AS engaged_cnt
+    FROM `project.dataset.study_cohort_01`
+    WHERE cohort_type = 'engaged'
+    GROUP BY 1,2,3
+  ) ed
+  ON ac.index_month = ed.index_month
+     AND ac.prev_6m   = ed.prev_6m
+     AND ac.post_3m   = ed.post_3m
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY ac.index_month, ac.prev_6m, ac.post_3m
+    ORDER BY FARM_FINGERPRINT(ac.mbr_id)
+  ) <= ed.engaged_cnt * 20
+),
 
-Also, one nuance I wanted to highlight: the concern around RAP score reliability beyond 30 days since admit primarily applies to cases where the discharge date is missing. In such cases, the t value (days since discharge) continues to increase artificially, and as a result, the RAP score doesn’t decay as expected — it remains constant or even high, which can misrepresent the member’s true risk.
+-- 4. Match control for ITT cohort:
+--    Sample per month, matching on prev_6m & post_3m as well
+control_itt AS (
+  SELECT
+    ac.mbr_id,
+    ac.index_month,
+    ac.prev_6m,
+    ac.post_3m,
+    'ITT_CONTROL' AS control_cohort
+  FROM canonical_controls ac
+  JOIN (
+    SELECT index_month, prev_6m, post_3m, COUNT(DISTINCT edw_mbr_id) AS itt_cnt
+    FROM `project.dataset.study_cohort_01`
+    WHERE cohort_type = 'targeted'
+    GROUP BY 1,2,3
+  ) id
+  ON ac.index_month = id.index_month
+     AND ac.prev_6m   = id.prev_6m
+     AND ac.post_3m   = id.post_3m
+  LEFT JOIN control_engaged ce
+    ON ce.mbr_id = ac.mbr_id
+  WHERE ce.mbr_id IS NULL  -- ensure disjoint sets
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY ac.index_month, ac.prev_6m, ac.post_3m
+    ORDER BY FARM_FINGERPRINT(ac.mbr_id)
+  ) <= id.itt_cnt * 20
+)
 
-However, for members with a valid discharge date, the RAP score tends to behave as designed — decreasing as we approach 30 days from discharge — so those scores may still be reliable even if the admit date is older than 30 days.
+-- 5. Union ENGAGED + ITT controls
+SELECT * FROM control_engaged
+UNION ALL
+SELECT * FROM control_itt;
+
+
+
+
 
 
 
