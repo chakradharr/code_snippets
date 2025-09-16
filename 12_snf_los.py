@@ -1,3 +1,58 @@
+WITH base AS (
+  SELECT
+    sc.edw_mbr_id,
+    sc.index_dt,
+    sc.*  -- keep all columns from study cohort
+  FROM `project.dataset.study_cohort_01` sc
+),
+
+membership_months AS (
+  SELECT
+    b.edw_mbr_id,
+    b.index_dt,
+    DATE_TRUNC(em.eff_dt, MONTH) AS mem_month
+  FROM base b
+  JOIN `edp-prod-hcbstorage.edp_hcb_core_cnsv.EMIS_MEMBERSHIP` em
+    ON em.member_id = b.edw_mbr_id
+)
+
+, flags AS (
+  SELECT
+    edw_mbr_id,
+    index_dt,
+
+    -- months before
+    COUNT(DISTINCT CASE
+      WHEN mem_month BETWEEN DATE_TRUNC(DATE_SUB(index_dt, INTERVAL 6 MONTH), MONTH)
+                         AND DATE_TRUNC(DATE_SUB(index_dt, INTERVAL 1 MONTH), MONTH)
+      THEN mem_month END) AS prev_6m,
+
+    -- months after
+    COUNT(DISTINCT CASE
+      WHEN mem_month BETWEEN DATE_TRUNC(DATE_ADD(index_dt, INTERVAL 1 MONTH), MONTH)
+                         AND DATE_TRUNC(DATE_ADD(index_dt, INTERVAL 3 MONTH), MONTH)
+      THEN mem_month END) AS post_3m
+  FROM membership_months
+  GROUP BY edw_mbr_id, index_dt
+)
+
+-- join back to base
+SELECT
+  b.*,
+  f.prev_6m,
+  f.post_3m
+FROM base b
+LEFT JOIN flags f
+  ON b.edw_mbr_id = f.edw_mbr_id
+ AND b.index_dt = f.index_dt;
+
+
+
+
+
+
+
+
 -- Build one row per member–month in the window around index_date
 WITH base AS (
   SELECT
