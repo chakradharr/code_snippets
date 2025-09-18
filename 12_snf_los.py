@@ -1,3 +1,16 @@
+# keep only strata with both 0 and 1
+valid_strata = itt_eval.groupby(["index_yrmo", "pre_mm_180", "post_mm_90"])["treatment_grp"].nunique()
+valid_strata = valid_strata[valid_strata == 2].index
+
+itt_eval_filtered = itt_eval.set_index(["index_yrmo", "pre_mm_180", "post_mm_90"]).loc[valid_strata].reset_index()
+
+
+
+
+
+
+
+
 itt_eval["index_yrmo"] = itt_eval["index_year"].astype(str) + "_" + itt_eval["index_month"].astype(str)
 
 # Post mm 90
