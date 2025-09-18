@@ -1,3 +1,22 @@
+
+import pandas as pd
+import numpy as np
+
+# assume df['age_nbr'] contains numeric ages
+bins = [0, 64, 69, 74, 79, 84, 200]
+labels = ["<65", "65-69", "70-74", "75-79", "80-84", "85+"]
+
+df['age_bucket'] = pd.cut(df['age_nbr'], bins=bins, labels=labels, right=True)
+
+# check distribution
+print(df['age_bucket'].value_counts())
+
+
+
+
+
+
+
 WITH base AS (
   SELECT
     sc.edw_mbr_id,
