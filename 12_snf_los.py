@@ -1,3 +1,32 @@
+itt_eval["index_yrmo"] = itt_eval["index_year"].astype(str) + "_" + itt_eval["index_month"].astype(str)
+
+# Post mm 90
+valid_post_mm = itt_eval.groupby("post_mm_90")["treatment_grp"].nunique()
+valid_post_mm = valid_post_mm[valid_post_mm == 2].index
+
+# Pre mm 180
+valid_pre_mm = itt_eval.groupby("pre_mm_180")["treatment_grp"].nunique()
+valid_pre_mm = valid_pre_mm[valid_pre_mm == 2].index
+
+# Index year-month
+valid_index_yrmo = itt_eval.groupby("index_yrmo")["treatment_grp"].nunique()
+valid_index_yrmo = valid_index_yrmo[valid_index_yrmo == 2].index
+
+
+itt_eval_filtered = itt_eval[
+    itt_eval["post_mm_90"].isin(valid_post_mm) &
+    itt_eval["pre_mm_180"].isin(valid_pre_mm) &
+    itt_eval["index_yrmo"].isin(valid_index_yrmo)
+].copy()
+
+print("Before:", itt_eval.shape)
+print("After :", itt_eval_filtered.shape)
+
+
+
+
+
+
 
 import pandas as pd
 import numpy as np
