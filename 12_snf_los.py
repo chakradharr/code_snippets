@@ -1,3 +1,12 @@
+
+A re-weighting approach that focuses analysis on the population with the greatest overlap in baseline characteristics between treatment and control.
+	•	Down-weights extreme cases with very low/high treatment probability.
+	•	Produces better covariate balance than IPW in small samples.
+
+
+
+
+
 # keep only strata with both 0 and 1
 valid_strata = itt_eval.groupby(["index_yrmo", "pre_mm_180", "post_mm_90"])["treatment_grp"].nunique()
 valid_strata = valid_strata[valid_strata == 2].index
