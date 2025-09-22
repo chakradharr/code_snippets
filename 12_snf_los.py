@@ -1,3 +1,7 @@
+We use both IPW and Overlap Weighting in DiD models. While IPW balances groups based on treatment probability, OW improves precision by emphasizing members where treatment and control populations are most comparable. This ensures findings are robust even in small or imbalanced samples.
+
+
+
 
 A re-weighting approach that focuses analysis on the population with the greatest overlap in baseline characteristics between treatment and control.
 	•	Down-weights extreme cases with very low/high treatment probability.
