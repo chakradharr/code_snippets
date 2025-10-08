@@ -1,3 +1,14 @@
+
+# List of columns representing BH conditions
+bh_cols = ['ANX', 'DEP', 'PMC', 'BIP', 'DEM', 'CDO', 'EDO', 'SDO', 'PPD', 'PSY', 'ALC', 'AUT']
+
+# Create bh_flag column
+eng_eval['bh_flag'] = (eng_eval[bh_cols].sum(axis=1) > 0).astype(int)
+
+
+
+
+
 We use both IPW and Overlap Weighting in DiD models. While IPW balances groups based on treatment probability, OW improves precision by emphasizing members where treatment and control populations are most comparable. This ensures findings are robust even in small or imbalanced samples.
 
 
