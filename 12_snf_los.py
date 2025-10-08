@@ -1,4 +1,40 @@
 
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Example: assuming your dataframe is called df
+# and columns are named 'pcp_visits_past_6M' and 'er_visits_past_6M'
+
+# List of categorical/count columns you want to visualize
+cols_to_plot = ['pcp_visits_past_6M', 'er_visits_past_6M']
+
+# Loop through each and plot histogram
+for col in cols_to_plot:
+    plt.figure(figsize=(6,4))
+    df[col].value_counts().sort_index().plot(kind='bar', color='skyblue', edgecolor='black')
+    plt.title(f'Distribution of {col}')
+    plt.xlabel(col)
+    plt.ylabel('Count of Members')
+    plt.xticks(rotation=0)
+    plt.show()
+    
+    
+import seaborn as sns
+
+for col in cols_to_plot:
+    plt.figure(figsize=(6,4))
+    sns.histplot(data=df, x=col, hue='treatment_grp', multiple='dodge', bins=range(0,10), shrink=0.8)
+    plt.title(f'Distribution of {col} by Treatment Group')
+    plt.xlabel(col)
+    plt.ylabel('Count of Members')
+    plt.show()
+
+
+
+
+
+
+
 # List of columns representing BH conditions
 bh_cols = ['ANX', 'DEP', 'PMC', 'BIP', 'DEM', 'CDO', 'EDO', 'SDO', 'PPD', 'PSY', 'ALC', 'AUT']
 
