@@ -1,3 +1,92 @@
+DECLARE start_month DATE DEFAULT DATE '2023-07-01';
+DECLARE end_month   DATE DEFAULT DATE '2025-02-01';
+
+WITH month_spine AS (
+  SELECT month_dt
+  FROM UNNEST(GENERATE_DATE_ARRAY(start_month, end_month, INTERVAL 1 MONTH)) AS month_dt
+),
+
+-- Daily ER (all time), pre-filter to ER + adjudicated rows; dedupe later per index
+daily_er_all AS (
+  SELECT
+    individual_id,
+    med_case_start_dt,
+    insights_pstd_dts,
+    adjn_dt
+  FROM `your_project.your_ds.daily_claim_line_final`          -- << change
+  WHERE TRIM(med_cs_ps_ctg_cd) = 'E'
+),
+
+-- Medical case ER (all time)
+medcase_er_all AS (
+  SELECT
+    individual_id,
+    med_case_start_dt
+  FROM `your_project.your_ds.medical_case`                    -- << change
+  WHERE TRIM(med_cs_ps_ctg_cd) = 'E'
+),
+
+-- Build member × index_month counts
+er_6m_by_month AS (
+  SELECT
+    m.month_dt AS index_month,
+    x.individual_id,
+    COUNT(DISTINCT x.med_case_start_dt) AS er_visits_past_6m
+  FROM month_spine m
+  JOIN (
+    -- recent 3 months from DAILY (adjudicated by index, latest posting kept)
+    SELECT
+      d.individual_id,
+      d.med_case_start_dt,
+      m2.month_dt AS index_month
+    FROM month_spine m2
+    JOIN (
+      SELECT
+        individual_id,
+        med_case_start_dt,
+        insights_pstd_dts,
+        adjn_dt,
+        ROW_NUMBER() OVER (
+          PARTITION BY individual_id, med_case_start_dt
+          ORDER BY insights_pstd_dts DESC
+        ) AS rn
+      FROM daily_er_all
+    ) d
+      ON d.rn = 1
+     AND DATE(d.adjn_dt) <= m2.month_dt
+     AND d.med_case_start_dt >= DATE_SUB(m2.month_dt, INTERVAL 3 MONTH)
+     AND d.med_case_start_dt <  m2.month_dt
+
+    UNION ALL
+
+    -- months -6 to -3 from MED CASE
+    SELECT
+      mc.individual_id,
+      mc.med_case_start_dt,
+      m3.month_dt AS index_month
+    FROM month_spine m3
+    JOIN medcase_er_all mc
+      ON mc.med_case_start_dt >= DATE_SUB(m3.month_dt, INTERVAL 6 MONTH)
+     AND mc.med_case_start_dt <  DATE_SUB(m3.month_dt, INTERVAL 3 MONTH)
+  ) x
+    ON TRUE
+  GROUP BY index_month, individual_id
+)
+
+SELECT
+  index_month,
+  individual_id,
+  er_visits_past_6m,
+  CASE WHEN er_visits_past_6m >= 4 THEN 1 ELSE 0 END AS er6m_ge4
+FROM er_6m_by_month
+ORDER BY index_month, individual_id;
+
+
+
+
+
+
+
 
 import pandas as pd
 import matplotlib.pyplot as plt
