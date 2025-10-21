@@ -1,3 +1,16 @@
+
+We do have discharge date information available in the RAP API payloads that are refreshed daily, so that can be leveraged for this analysis.
+
+@Mike — it would be helpful to learn more about how this is captured or derived from the MedCompass curated tables, so we can align both sources. Could you please also share the point of contact who can help us with access or additional details on that?
+
+Thanks,
+Chakradhar
+
+
+
+
+
+
 -- Base cohort with one row per (individual_id, index_dt)
 WITH base AS (
   SELECT
