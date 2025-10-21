@@ -1,3 +1,80 @@
+-- Base cohort with one row per (individual_id, index_dt)
+WITH base AS (
+  SELECT
+    individual_id,
+    index_dt
+  FROM `your_project.your_ds.er_eval_version2_eligible_membership_04`   -- << change
+),
+
+-- 1) DAILY CLAIMS: last 3 months before index_dt, only claims adjudicated by index_dt,
+--    and keep the row with the latest insights_pstd_dts per (member, visit date, index_dt)
+daily_keep AS (
+  SELECT
+    b.individual_id,
+    b.index_dt,
+    d.med_case_start_dt
+  FROM base b
+  JOIN `your_project.your_ds.daily_claim_line_final` d                     -- << change
+    ON d.individual_id = b.individual_id
+   AND TRIM(d.med_cs_ps_ctg_cd) = 'E'
+   AND DATE(d.adjn_dt) <= b.index_dt
+   AND d.med_case_start_dt >= DATE_SUB(b.index_dt, INTERVAL 3 MONTH)
+   AND d.med_case_start_dt <  b.index_dt
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY b.individual_id, b.index_dt, d.med_case_start_dt
+    ORDER BY d.insights_pstd_dts DESC
+  ) = 1
+),
+
+-- 2) MEDICAL CASE: months -6 to -3 relative to index_dt
+medcase_keep AS (
+  SELECT
+    b.individual_id,
+    b.index_dt,
+    m.med_case_start_dt
+  FROM base b
+  JOIN `your_project.your_ds.medical_case` m                                  -- << change
+    ON m.individual_id = b.individual_id
+   AND TRIM(m.med_cs_ps_ctg_cd) = 'E'
+   AND m.med_case_start_dt >= DATE_SUB(b.index_dt, INTERVAL 6 MONTH)
+   AND m.med_case_start_dt <  DATE_SUB(b.index_dt, INTERVAL 3 MONTH)
+),
+
+-- 3) UNION the two windows for the same (member, index_dt)
+er_window AS (
+  SELECT * FROM daily_keep
+  UNION ALL
+  SELECT * FROM medcase_keep
+),
+
+-- 4) Count distinct visits in the 6-month lookback for each (member, index_dt)
+er_counts AS (
+  SELECT
+    individual_id,
+    index_dt,
+    COUNT(DISTINCT med_case_start_dt) AS er_visits_past_6m
+  FROM er_window
+  GROUP BY individual_id, index_dt
+)
+
+-- 5) Join back to base and flag ≥4
+SELECT
+  b.*,
+  COALESCE(c.er_visits_past_6m, 0) AS er_visits_past_6m,
+  CASE WHEN COALESCE(c.er_visits_past_6m, 0) >= 4 THEN 1 ELSE 0 END AS er6m_ge4
+FROM base b
+LEFT JOIN er_counts c
+  ON c.individual_id = b.individual_id
+ AND c.index_dt      = b.index_dt;
+
+
+
+
+
+
+
+
+
 DECLARE start_month DATE DEFAULT DATE '2023-07-01';
 DECLARE end_month   DATE DEFAULT DATE '2025-02-01';
 
