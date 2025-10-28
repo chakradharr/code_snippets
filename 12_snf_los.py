@@ -1,3 +1,10 @@
+
+CASE 
+  WHEN discharge_date = DATE '9999-12-31' THEN discharge_date
+  ELSE DATE_ADD(discharge_date, INTERVAL 30 DAY)
+END AS discharge_plus_30
+
+
 WITH windowed_auth AS (
   SELECT
     service_auth_id,
