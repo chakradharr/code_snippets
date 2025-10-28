@@ -1,3 +1,21 @@
+SELECT
+    pme_reference_no,
+    req_load_dt,
+    actual_discharge_dt,
+    lobcode,
+    scored_volume
+FROM your_table
+WHERE actual_discharge_dt IS NOT NULL
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY pme_reference_no
+    ORDER BY actual_discharge_dt ASC
+) = 1;
+
+
+
+
+
+
 WITH distinct_activity AS (
   SELECT
     memberprogramid,
