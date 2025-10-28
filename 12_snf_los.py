@@ -1,3 +1,58 @@
+WITH windowed_auth AS (
+  SELECT
+    service_auth_id,
+    member_id,
+    admit_date,
+    discharge_date,
+    DATE_ADD(discharge_date, INTERVAL 30 DAY) AS discharge_plus_30
+  FROM
+    service_auth
+)
+
+SELECT
+  a.service_auth_id,
+  a.member_id,
+  p.program_id,
+
+  -- Targeted flag: 1 if either min or max targeted date in window
+  CASE 
+    WHEN (p.min_targeted_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+      OR (p.max_targeted_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+    THEN 1 ELSE 0 
+  END AS targeted_flag,
+
+  -- Engaged flag: 1 if either min or max engaged date in window
+  CASE 
+    WHEN (p.min_engaged_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+      OR (p.max_engaged_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+    THEN 1 ELSE 0 
+  END AS engaged_flag
+
+FROM
+  windowed_auth a
+LEFT JOIN
+  programs p
+ON
+  a.member_id = p.member_id
+WHERE
+  -- Keep rows where there’s at least some overlap
+  ( (p.min_targeted_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+    OR (p.max_targeted_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+    OR (p.min_engaged_dt BETWEEN a.admit_date AND a.discharge_plus_30)
+    OR (p.max_engaged_dt BETWEEN a.admit_date AND a.discharge_plus_30) )
+ORDER BY
+  a.service_auth_id, p.program_id;
+  
+  
+  
+  
+
+
+
+
+
+
+
 
 We do have discharge date information available in the RAP API payloads that are refreshed daily, so that can be leveraged for this analysis.
 
