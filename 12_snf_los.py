@@ -1,3 +1,54 @@
+WITH distinct_activity AS (
+  SELECT
+    memberprogramid,
+    pme_reference_no,
+    MAX(rap_targeted)       AS rap_targeted,
+    MAX(rap_engaged)        AS rap_engaged,
+    MAX(accp_targeted)      AS accp_targeted,
+    MAX(accp_engaged)       AS accp_engaged,
+    MAX(high_targeted)      AS high_targeted,
+    MAX(high_engaged)       AS high_engaged,
+    MAX(medium_targeted)    AS medium_targeted,
+    MAX(medium_engaged)     AS medium_engaged,
+    MAX(bh_targeted)        AS bh_targeted,
+    MAX(bh_engaged)         AS bh_engaged,
+    MAX(complex_chronic)    AS complex_chronic,
+    MAX(short_term_referral) AS short_term_referral,
+    MAX(healthy_heart)      AS healthy_heart,
+    MAX(social_services)    AS social_services,
+    MAX(dedicated_grouptriggers) AS dedicated_grouptriggers
+  FROM
+    `anbc-hcb-dev.clin_analytics_hcb_dev.DS_SNF_YTD_Analysis_03_Final_SNF_PROGRAM_ACTIVITY_FY25`
+  GROUP BY
+    memberprogramid, pme_reference_no
+)
+
+SELECT
+  COUNT(*) AS row_cnt,
+  COUNT(DISTINCT memberprogramid) AS pgm_cnt,
+  COUNT(DISTINCT pme_reference_no) AS auth_cnt,
+  SUM(rap_targeted) AS rap_targeted,
+  SUM(rap_engaged) AS rap_engaged,
+  SUM(accp_targeted) AS accp_targeted,
+  SUM(accp_engaged) AS accp_engaged,
+  SUM(high_targeted) AS high_targeted,
+  SUM(high_engaged) AS high_engaged,
+  SUM(medium_targeted) AS medium_targeted,
+  SUM(medium_engaged) AS medium_engaged,
+  SUM(bh_targeted) AS bh_targeted,
+  SUM(bh_engaged) AS bh_engaged,
+  SUM(complex_chronic) AS complex_chronic,
+  SUM(short_term_referral) AS short_term_referral,
+  SUM(healthy_heart) AS healthy_heart,
+  SUM(social_services) AS social_services,
+  SUM(dedicated_grouptriggers) AS dedicated_grouptriggers
+FROM distinct_activity;
+
+
+
+
+
+
 
 CASE 
   WHEN discharge_date = DATE '9999-12-31' THEN discharge_date
