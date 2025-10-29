@@ -1,3 +1,19 @@
+Post-Acute CM Engagement Overview (from first sheet)
+	•	65% of all SNF admits are targeted for Case Management (CM).
+	•	35.4% of RAP-targeted SNF admits are engaged in CM.
+	•	Indicates moderate conversion from targeting to engagement — opportunity to strengthen CM follow-through.
+
+⸻
+
+2️⃣ RAP-SNF Monthly Performance (Jan–Sep 2025)
+	•	Average Target Rate: ~47% of identified SNF admits targeted.
+	•	Average Engagement Rate: ~36% of targeted admits engaged.
+	•	Highest Target Rate: April (57%)
+	•	Highest Engagement Rate: September (43%)
+	•	Targeting fluctuates month to month, while engagement remains steady with slight improvement in late Q3.
+
+
+
 
 WITH ranked_programs AS (
   SELECT
