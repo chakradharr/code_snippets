@@ -1,3 +1,42 @@
+
+WITH ranked_programs AS (
+  SELECT
+    pme_reference_no,
+    memberprogramid,
+    first_program_track,
+    CASE
+      WHEN first_program_track = 'RAP' THEN 1
+      WHEN first_program_track = 'ACCP' THEN 2
+      WHEN first_program_track = 'High' THEN 3
+      WHEN first_program_track = 'Medium' THEN 4
+      ELSE 99
+    END AS program_priority
+  FROM
+    `anbc-hcb-dev.clin_analytics_hcb_dev.DS_SNF_YTD_Analysis_03_Final_SNF_PROGRAM_ACTIVITY_FY25`
+),
+
+deduped AS (
+  SELECT
+    pme_reference_no,
+    memberprogramid,
+    first_program_track,
+    program_priority,
+    ROW_NUMBER() OVER (PARTITION BY pme_reference_no ORDER BY program_priority) AS rn
+  FROM ranked_programs
+)
+
+SELECT
+  pme_reference_no,
+  memberprogramid,
+  first_program_track,
+  program_priority
+FROM deduped
+WHERE rn = 1;
+
+
+
+
+
 SELECT
     pme_reference_no,
     req_load_dt,
