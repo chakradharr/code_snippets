@@ -1,3 +1,23 @@
+You’re right — the “Any CM Activity” category does include both regular RAP and RAP SNF programs.
+
+To clarify how the metrics differ:
+	•	Metrics 1 & 2 (RAP SNF Target and Engagement Rates) were calculated using the unique program card associated with each authorization ID.
+	•	When a member is identified by regular RAP (acute) and later transitions to a SNF, the same CM program card remains open and is not re-created for the SNF authorization.
+	•	As a result, metrics 1 and 2 only reflect newly identified members during the SNF stay (i.e., those not already under an active RAP CM program).
+	•	Metrics 3–5 (Any CM Activity), on the other hand, take a broader view of all CM engagement, regardless of which model triggered the initial identification.
+	•	These metrics capture any CM program activity between the SNF admit date and up to 30 days post-discharge, covering both regular RAP and RAP SNF engagements.
+
+In total, out of ~144K scored SNF cases, around 74K (≈51%) were identified. While identification volumes are higher during SNF, many of these members were already identified earlier by the regular RAP model during their acute stay and continued under that same CM card. Therefore, most SNF identifications represent continuations rather than net-new identifications.
+
+Regarding your observation — it’s expected that only a small portion of SNF discharges appear as new identifications under regular RAP, since the workflow intentionally suppresses new program creation when a member transitions from acute to SNF. SNF admits are indeed targeted, but as you mentioned, case management activity tends to be limited during the SNF phase and picks up closer to the discharge-to-home transition.
+
+
+
+
+
+
+
+
 Post-Acute CM Engagement Overview (from first sheet)
 	•	65% of all SNF admits are targeted for Case Management (CM).
 	•	35.4% of RAP-targeted SNF admits are engaged in CM.
