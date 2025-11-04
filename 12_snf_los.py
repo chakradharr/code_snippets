@@ -1,3 +1,37 @@
+
+SELECT
+  mc.member_id,
+  -- Count of ER visits from medical_case source
+  COUNT(DISTINCT CASE 
+    WHEN TRIM(mc.med_cs_ps_ctg_cd) = 'E' 
+         AND mc.source = 'medical_case' 
+    THEN mc.med_case_start_dt 
+  END) AS medical_case_er_count,
+
+  -- Count of ER visits from daily_claims source
+  COUNT(DISTINCT CASE 
+    WHEN TRIM(mc.med_cs_ps_ctg_cd) = 'E' 
+         AND mc.source = 'daily_claims' 
+    THEN mc.med_case_start_dt 
+  END) AS daily_claims_er_count,
+
+  -- Total distinct ER visits across all sources
+  COUNT(DISTINCT CASE 
+    WHEN TRIM(mc.med_cs_ps_ctg_cd) = 'E' 
+    THEN mc.med_case_start_dt 
+  END) AS total_er_count
+
+FROM your_table_name mc
+GROUP BY mc.member_id;
+
+
+
+
+
+
+
+
+
 You’re right — the “Any CM Activity” category does include both regular RAP and RAP SNF programs.
 
 To clarify how the metrics differ:
