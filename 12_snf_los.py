@@ -1,4 +1,16 @@
+Interpretation – RAP vs. RAP-SNF
+	•	Identification: RAP-SNF identified 52% of total admits versus 45% under RAP. However, much of the higher identification reflects members already captured through RAP-Acute, indicating program overlap rather than unique new capture.
+	•	Targeting: RAP-SNF targeted 25% of total admits compared to 14% for RAP, showing stronger operational follow-through from identification to outreach in the post-acute space.
+	•	Engagement: Engagement of total admits was higher for RAP-SNF (9%) versus RAP (5%), with engagement conversion among targeted members remaining consistent at ~35–36%, indicating similar outreach effectiveness once members are contacted.
 
+
+
+
+
+
+
+
+m
 SELECT
   mc.member_id,
   -- Count of ER visits from medical_case source
