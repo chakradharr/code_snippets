@@ -1,3 +1,13 @@
+
+im trying to do an evaluation of er program; program identification is members with greater than 4 er visits, im trying to do intent to treat and engaged analysis. for engaged cohort my treatment is actually engaged on avergae of 65 days ... so index date is technically 65 days from identified and control group is just identified similar national population , hence pre post er utilization metrics for control and treatment group differ a lot
+
+
+
+
+
+
+
+
 Interpretation – RAP vs. RAP-SNF
 	•	Identification: RAP-SNF identified 52% of total admits versus 45% under RAP. However, much of the higher identification reflects members already captured through RAP-Acute, indicating program overlap rather than unique new capture.
 	•	Targeting: RAP-SNF targeted 25% of total admits compared to 14% for RAP, showing stronger operational follow-through from identification to outreach in the post-acute space.
