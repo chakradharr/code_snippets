@@ -1,3 +1,87 @@
+pred_col = 'median_los_all'   # instead of 'pred_los'
+df['signed_error'] = df[actual_col] - df[pred_col]
+# rerun the rest of the cells unchanged
+
+import numpy as np
+import pandas as pd
+
+# actual & predicted
+actual_col = 'tum_act_los_day_cnt'
+pred_col   = 'pred_los'   # change to 'median_los_all' or whatever you’re using
+
+# signed error: +ve = under-prediction, -ve = over-prediction
+df['signed_error'] = df[actual_col] - df[pred_col]
+
+# absolute error
+df['abs_error'] = df['signed_error'].abs()
+
+# squared error
+df['sq_error'] = df['signed_error'] ** 2
+
+# label type of error
+def classify_error(e, tol=0.5):
+    """
+    tol = tolerance in days to treat as 'about right'
+    """
+    if e > tol:
+        return 'under_pred'   # actual > predicted
+    elif e < -tol:
+        return 'over_pred'    # actual < predicted
+    else:
+        return 'near_exact'
+
+df['error_type'] = df['signed_error'].apply(classify_error)
+
+mae  = df['abs_error'].mean()
+rmse = np.sqrt(df['sq_error'].mean())
+bias = df['signed_error'].mean()   # +ve means on avg you under-predict
+
+error_mix = df['error_type'].value_counts(normalize=True)  # proportions
+
+print(f"MAE  : {mae:.3f} days")
+print(f"RMSE : {rmse:.3f} days")
+print(f"Bias (actual - pred): {bias:.3f} days")
+
+print("\nError mix:")
+print((error_mix * 100).round(1).astype(str) + '%')
+
+
+def error_by_group(df, group_cols, actual_col='tum_act_los_day_cnt', pred_col='pred_los'):
+    g = df.groupby(group_cols, as_index=False).agg(
+        count       = (actual_col, 'size'),
+        mae         = ('abs_error', 'mean'),
+        rmse        = ('sq_error', lambda x: np.sqrt(x.mean())),
+        avg_pred    = (pred_col, 'mean'),
+        avg_actual  = (actual_col, 'mean'),
+        bias        = ('signed_error', 'mean'),
+        under_rate  = ('error_type', lambda s: (s == 'under_pred').mean()),
+        over_rate   = ('error_type', lambda s: (s == 'over_pred').mean()),
+    )
+    # convert rates to %
+    g['under_rate'] = (g['under_rate'] * 100).round(1)
+    g['over_rate']  = (g['over_rate']  * 100).round(1)
+    return g
+
+# by service type
+err_by_srv = error_by_group(df, ['tum_stay_srv_type_cd'])
+print("===== ERROR BY SERVICE TYPE =====")
+print(err_by_srv.sort_values('mae'))
+
+# by admission status
+err_by_adm = error_by_group(df, ['SAAdmissionStatusType'])
+print("\n===== ERROR BY ADMISSION STATUS =====")
+print(err_by_adm.sort_values('mae'))
+
+
+
+
+
+
+
+
+
+
+
 
 median_los_lvl1 = df.groupby(['icd_group', 'tum_stay_sry_type_cd', 'SAAdmissionStatusType'])['tum_act_los_day_cnt'].median()
 
