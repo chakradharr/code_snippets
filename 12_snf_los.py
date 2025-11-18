@@ -1,3 +1,24 @@
+SELECT
+  authorization_id,
+
+  -- first day this auth was scored
+  MIN(IF(scored = 'SCORED', req_load_dt, NULL)) AS first_scored_req_load_dt,
+
+  -- first day a discharge date showed up
+  MIN(IF(actual_discharge_dts IS NOT NULL, req_load_dt, NULL)) AS first_dc_req_load_dt,
+
+  -- (optional) the first discharge date itself
+  MIN(IF(actual_discharge_dts IS NOT NULL, actual_discharge_dts, NULL)) AS first_discharge_dt
+
+FROM `project.dataset.your_table`
+GROUP BY authorization_id;
+
+
+
+
+
+
+
 pred_col = 'median_los_all'   # instead of 'pred_los'
 df['signed_error'] = df[actual_col] - df[pred_col]
 # rerun the rest of the cells unchanged
