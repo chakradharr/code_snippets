@@ -1,4 +1,8 @@
 
+median_los_lvl1 = df.groupby(['icd_group', 'tum_stay_sry_type_cd', 'SAAdmissionStatusType'])['tum_act_los_day_cnt'].median()
+
+
+
 # ============================================
 # 0. IMPORTS
 # ============================================
