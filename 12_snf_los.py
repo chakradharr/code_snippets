@@ -1,3 +1,52 @@
+shifts = [-3, -2, -1, 0, 1, 2, 3]
+
+
+import numpy as np
+import pandas as pd
+
+results = []
+
+for shift in shifts:
+    shifted_pred = base_pred + shift   # apply the bias correction
+
+    # errors
+    mae  = np.mean(np.abs(actual - shifted_pred))
+    rmse = np.sqrt(np.mean((actual - shifted_pred) ** 2))
+    bias = np.mean(actual - shifted_pred)
+
+    results.append([shift, mae, rmse, bias])
+
+results_df = pd.DataFrame(results, columns=['shift_days', 'MAE', 'RMSE', 'BIAS'])
+
+
+results_df = results_df.sort_values('MAE')
+print(results_df)
+
+plt.plot(results_df['shift_days'], results_df['MAE'], marker='o')
+plt.axhline(y=results_df.loc[results_df['shift_days']==0, 'MAE'].values[0],
+            linestyle='--', color='gray')
+plt.title('MAE Sensitivity to LOS Shift')
+plt.xlabel('Shift Applied to Predicted LOS (days)')
+plt.ylabel('MAE')
+plt.grid(True)
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SELECT
   authorization_id,
 
