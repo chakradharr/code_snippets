@@ -1,4 +1,157 @@
 
+# ============================================
+# 0. IMPORTS
+# ============================================
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set(style="whitegrid")
+
+# ============================================
+# 1. BASIC PREP
+# ============================================
+# df = pd.read_csv("your_file.csv")   # Load here
+
+# Create error columns
+df['los_error'] = df['median_los_grp'] - df['tum_act_los_day_cnt']
+df['abs_error'] = df['los_error'].abs()
+
+print("Error fields created.")
+
+# ============================================
+# 2. OVERALL SUMMARY
+# ============================================
+print("\n===== GLOBAL ERROR SUMMARY =====")
+display(df[['tum_act_los_day_cnt', 'median_los_grp', 'los_error', 'abs_error']].describe())
+
+# ============================================
+# 3. FUNCTION: ERROR BY CATEGORY
+# ============================================
+def error_by_group(col):
+    print(f"\n===== ERROR BY {col} =====")
+    g = df.groupby(col).agg(
+        count=('auth_id','count'),
+        mae=('abs_error','mean'),
+        rmse=('los_error', lambda x: np.sqrt((x**2).mean())),
+        avg_pred=('median_los_grp','mean'),
+        avg_actual=('tum_act_los_day_cnt','mean')
+    ).sort_values('mae')
+
+    display(g.head(20))
+    return g
+
+# Run on important categorical fields
+cat_fields = [
+    'tum_stay_sry_type_cd',
+    'SAAdmissionStatusType',
+    'DischargeTo',
+    'category',
+    'LOBCode',
+    'PrecertDecisionStatus',
+    'tum_admission_type_cd',
+    'tum_admit_class_cd'
+]
+
+grouped_results = {col: error_by_group(col) for col in cat_fields}
+
+# ============================================
+# 4. PLOT FUNCTIONS
+# ============================================
+def plot_mae(col):
+    plt.figure(figsize=(12,5))
+    tmp = df.groupby(col)['abs_error'].mean().sort_values()
+    sns.barplot(x=tmp.index, y=tmp.values)
+    plt.xticks(rotation=45)
+    plt.title(f"Mean Absolute Error by {col}")
+    plt.ylabel("MAE")
+    plt.show()
+
+
+def plot_distribution():
+    plt.figure(figsize=(10,5))
+    sns.kdeplot(df['tum_act_los_day_cnt'], label='Actual LOS', shade=True)
+    sns.kdeplot(df['median_los_grp'], label='Predicted LOS', shade=True)
+    plt.title("Distribution: Actual vs Predicted LOS")
+    plt.legend()
+    plt.show()
+
+
+def plot_error_dist():
+    plt.figure(figsize=(10,5))
+    sns.histplot(df['los_error'], bins=60, kde=True)
+    plt.title("Error Distribution (Predicted – Actual)")
+    plt.axvline(0, color='black', linestyle='--')
+    plt.show()
+
+
+def plot_scatter():
+    plt.figure(figsize=(8,6))
+    sns.scatterplot(x=df['tum_act_los_day_cnt'], y=df['median_los_grp'], alpha=0.3)
+    plt.xlabel("Actual LOS")
+    plt.ylabel("Predicted (Median LOS)")
+    plt.title("Actual vs Predicted LOS")
+    plt.show()
+
+# ============================================
+# 5. RUN PLOTS
+# ============================================
+plot_distribution()
+plot_error_dist()
+plot_scatter()
+
+for col in cat_fields:
+    plot_mae(col)
+
+# ============================================
+# 6. HIGH ERROR SEGMENTS
+# ============================================
+print("\n===== TOP HIGH-ERROR CASES =====")
+high_error = df.nlargest(20, 'abs_error')[[
+    'auth_id', 'DiagnosisCode', 'tum_stay_sry_type_cd',
+    'tum_act_los_day_cnt', 'median_los_grp', 'abs_error'
+]]
+display(high_error)
+
+# ============================================
+# 7. ERROR BY DIAGNOSIS (OPTIONAL)
+# ============================================
+print("\n===== ERROR BY ICD CATEGORY =====")
+dx_err = error_by_group('icd9_dx_ctg_cd').head(30)
+
+# ============================================
+# 8. SHORT-STAY VS LONG-STAY ERROR
+# ============================================
+df['LOS_bin'] = pd.cut(
+    df['tum_act_los_day_cnt'],
+    bins=[0, 2, 5, 10, 20, 999],
+    labels=["0-2", "3-5", "6-10", "11-20", "20+"]
+)
+
+print("\n===== ERROR BY LOS GROUP =====")
+display(error_by_group('LOS_bin'))
+
+# ============================================
+# 9. SAVE SUMMARY TABLES (OPTIONAL)
+# ============================================
+summary_tables = {
+    col: error_by_group(col)
+    for col in cat_fields + ['LOS_bin', 'icd9_dx_ctg_cd']
+}
+
+for key, table in summary_tables.items():
+    table.to_csv(f"error_summary_{key}.csv")
+
+print("All summary CSVs exported successfully.")
+
+
+
+
+
+
+
+
 actual: test_df['actual_los']
 predicted: test_df['predicted_los']
 diagnosis group: test_df['dx_grp']
