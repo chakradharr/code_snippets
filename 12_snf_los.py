@@ -1,4 +1,121 @@
 
+actual: test_df['actual_los']
+predicted: test_df['predicted_los']
+diagnosis group: test_df['dx_grp']
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+test_df['scored_flag'] = np.where(test_df['predicted_los'].notnull(), 1, 0)
+
+# Overall % scored
+overall_scored = test_df['scored_flag'].mean() * 100
+print("Overall % Scored:", overall_scored)
+
+# By diagnosis group
+scored_by_dx = test_df.groupby('dx_grp')['scored_flag'].mean().sort_values(ascending=False) * 100
+print(scored_by_dx)
+
+plt.figure(figsize=(12,5))
+scored_by_dx.plot(kind='bar')
+plt.title('% Scored by Diagnosis Group')
+plt.ylabel('% Scored')
+plt.show()
+
+#2
+test_df['error'] = test_df['predicted_los'] - test_df['actual_los']
+
+# Histogram
+plt.figure(figsize=(10,5))
+sns.histplot(test_df['error'], kde=True, bins=30)
+plt.title('Error Distribution (Predicted - Actual LOS)')
+plt.xlabel('Prediction Error')
+plt.ylabel('Frequency')
+plt.axvline(0, color='red', linestyle='--')
+plt.show()
+
+# Boxplot
+plt.figure(figsize=(10,2))
+sns.boxplot(x=test_df['error'])
+plt.title('Error Boxplot')
+plt.axvline(0, color='red', linestyle='--')
+plt.show()
+
+#3
+
+plt.figure(figsize=(8,6))
+sns.scatterplot(x=test_df['predicted_los'], y=test_df['actual_los'], alpha=0.4)
+plt.plot([0, test_df['actual_los'].max()], [0, test_df['actual_los'].max()], 'r--')
+plt.xlabel('Predicted LOS')
+plt.ylabel('Actual LOS')
+plt.title('Predicted vs Actual LOS')
+plt.show()
+
+#4
+# Bucketing predicted LOS
+test_df['pred_bucket'] = pd.cut(
+    test_df['predicted_los'],
+    bins=[0,2,4,7,999],
+    labels=['0-2','2-4','4-7','7+'],
+    include_lowest=True
+)
+
+calibration = test_df.groupby('pred_bucket')[['actual_los','predicted_los']].mean()
+
+print(calibration)
+
+calibration.plot(kind='bar', figsize=(10,5))
+plt.title('Calibration Plot: Mean Actual vs Predicted by LOS Bucket')
+plt.ylabel('LOS (days)')
+plt.show()
+
+#5
+err_by_dx = test_df.groupby('dx_grp').agg(
+    count=('actual_los', 'count'),
+    mae=('error', lambda x: np.mean(np.abs(x))),
+    median_error=('error', 'median'),
+    pct_under=('error', lambda x: np.mean(x < 0) * 100),
+    pct_over=('error', lambda x: np.mean(x > 0) * 100)
+).sort_values('mae')
+
+print(err_by_dx.head(20))
+
+# Plotting MAE by diagnosis group
+plt.figure(figsize=(12,6))
+err_by_dx['mae'].plot(kind='bar')
+plt.title('MAE by Diagnosis Group')
+plt.ylabel('Mean Absolute Error')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 im trying to do an evaluation of er program; program identification is members with greater than 4 er visits, im trying to do intent to treat and engaged analysis. for engaged cohort my treatment is actually engaged on avergae of 65 days ... so index date is technically 65 days from identified and control group is just identified similar national population , hence pre post er utilization metrics for control and treatment group differ a lot
 
 
