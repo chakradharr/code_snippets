@@ -1,3 +1,93 @@
+
+import pandas as pd
+import numpy as np
+
+# -------------------------------------------------------------
+# 0. ENSURE DATETIME TYPES (critical!)
+# -------------------------------------------------------------
+date_cols = [
+    'tum_actual_discharge_dt',
+    'pred_discharge_dt',
+    'first_scored_dt'
+]
+
+for c in date_cols:
+    df[c] = pd.to_datetime(df[c], errors='coerce')   # converts string → datetime safely
+
+# -------------------------------------------------------------
+# 1. DEFINE SERIES (now all are datetimes)
+# -------------------------------------------------------------
+actual = df['tum_actual_discharge_dt']
+pred   = df['pred_discharge_dt']
+first_scored = df['first_scored_dt']
+
+# -------------------------------------------------------------
+# 2. Compute lag between predicted vs actual discharge
+# -------------------------------------------------------------
+df['lag_vs_actual'] = (pred - actual).dt.days
+
+# <0 = scoring would happen BEFORE actual discharge
+# =0 = ON discharge day
+# >0 = AFTER discharge
+
+# -------------------------------------------------------------
+# 3. Compute delay vs CURRENT scoring process
+# -------------------------------------------------------------
+df['delay_vs_current'] = (pred - first_scored).dt.days
+
+# +ve = predicted discharge scoring is LATER than current
+# -ve = predicted discharge scoring is EARLIER
+
+# -------------------------------------------------------------
+# 4. Summary statistics
+# -------------------------------------------------------------
+avg_delay_actual   = df['lag_vs_actual'].mean()
+median_delay_actual = df['lag_vs_actual'].median()
+
+pct_before = (df['lag_vs_actual'] < 0).mean() * 100
+pct_on     = (df['lag_vs_actual'] == 0).mean() * 100
+pct_after  = (df['lag_vs_actual'] > 0).mean() * 100
+
+avg_delay_current   = df['delay_vs_current'].mean()
+median_delay_current = df['delay_vs_current'].median()
+
+# -------------------------------------------------------------
+# 5. Lag distribution table (like your Excel screenshot)
+# -------------------------------------------------------------
+lag_dist = (
+    df['lag_vs_actual']
+      .value_counts()
+      .sort_index()
+      .reset_index()
+)
+
+lag_dist.columns = ['lag_days', 'count']
+lag_dist['percent'] = (lag_dist['count'] / lag_dist['count'].sum() * 100).round(2)
+lag_dist['cum_percent'] = lag_dist['percent'].cumsum().round(2)
+
+# -------------------------------------------------------------
+# 6. PRINT FINAL MANAGER SUMMARY
+# -------------------------------------------------------------
+print("===== SCORING IMPACT IF WE SCORE ON PREDICTED DISCHARGE DATE =====\n")
+
+print(f"Average lag vs actual discharge : {avg_delay_actual:.2f} days")
+print(f"Median lag vs actual discharge  : {median_delay_actual:.2f} days\n")
+
+print(f"% Scored BEFORE actual discharge: {pct_before:.2f}%")
+print(f"% Scored ON discharge day       : {pct_on:.2f}%")
+print(f"% Scored AFTER discharge        : {pct_after:.2f}%\n")
+
+print(f"Average delay vs current scoring: {avg_delay_current:.2f} days")
+print(f"Median delay vs current scoring : {median_delay_current:.2f} days\n")
+
+print("===== LAG DISTRIBUTION TABLE =====")
+display(lag_dist)
+
+
+
+
+
+
 import pandas as pd
 import numpy as np
 
