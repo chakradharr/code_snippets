@@ -1,3 +1,81 @@
+import pandas as pd
+import numpy as np
+
+# -------------------------------------------------------------
+# 1. DEFINE COLUMNS (rename these to match your exact dataframe)
+# -------------------------------------------------------------
+actual = df['tum_actual_discharge_dt']
+pred = df['pred_discharge_dt']
+first_scored = df['first_scored_dt']
+
+# -------------------------------------------------------------
+# 2. Compute lag between PREDICTED discharge and ACTUAL discharge
+# -------------------------------------------------------------
+df['lag_vs_actual'] = (pred - actual).dt.days
+
+# Interpretation:
+#   < 0 = scoring would happen BEFORE actual discharge
+#   = 0 = scoring ON discharge day
+#   > 0 = scoring AFTER discharge (late)
+
+# -------------------------------------------------------------
+# 3. Compute delay vs CURRENT scoring process
+# -------------------------------------------------------------
+df['delay_vs_current'] = (pred - first_scored).dt.days
+# +ve = predicted discharge scoring is LATER
+# -ve = predicted discharge scoring is EARLIER
+
+# -------------------------------------------------------------
+# 4. Summary statistics (overall)
+# -------------------------------------------------------------
+avg_delay_actual = df['lag_vs_actual'].mean()
+median_delay_actual = df['lag_vs_actual'].median()
+
+pct_before = (df['lag_vs_actual'] < 0).mean() * 100
+pct_on     = (df['lag_vs_actual'] == 0).mean() * 100
+pct_after  = (df['lag_vs_actual'] > 0).mean() * 100
+
+avg_delay_current = df['delay_vs_current'].mean()
+median_delay_current = df['delay_vs_current'].median()
+
+# -------------------------------------------------------------
+# 5. Lag distribution table (like your Excel screenshot)
+# -------------------------------------------------------------
+lag_dist = (
+    df['lag_vs_actual']
+      .value_counts()
+      .sort_index()
+      .reset_index()
+)
+
+lag_dist.columns = ['lag_days', 'count']
+lag_dist['percent'] = (lag_dist['count'] / lag_dist['count'].sum() * 100).round(2)
+lag_dist['cum_percent'] = lag_dist['percent'].cumsum().round(2)
+
+# -------------------------------------------------------------
+# 6. PRINT FINAL SUMMARY (manager-ready)
+# -------------------------------------------------------------
+print("===== SCORING TIMING IMPACT WHEN USING PREDICTED DISCHARGE DATE =====\n")
+
+print(f"Avg lag vs actual discharge (days): {avg_delay_actual:.2f}")
+print(f"Median lag vs actual discharge (days): {median_delay_actual:.2f}\n")
+
+print(f"% scored BEFORE actual discharge: {pct_before:.2f}%")
+print(f"% scored ON actual discharge day: {pct_on:.2f}%")
+print(f"% scored AFTER actual discharge: {pct_after:.2f}%\n")
+
+print(f"Avg delay vs current scoring process: {avg_delay_current:.2f} days")
+print(f"Median delay vs current scoring process: {median_delay_current:.2f} days\n")
+
+print("===== LAG DISTRIBUTION TABLE =====")
+display(lag_dist)
+
+
+
+
+
+
+
 shifts = [-3, -2, -1, 0, 1, 2, 3]
 
 
