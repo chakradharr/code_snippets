@@ -22,6 +22,184 @@ pred          = df['pred_discharge_dt']
 first_scored  = df['first_scored_dt']
 
 # ---------------------------------------------------------
+# 1. Timing Bucket Function
+# ---------------------------------------------------------
+def timing_bucket(lag, days_before_admit):
+    if pd.notna(days_before_admit) and days_before_admit <= 0:
+        return "Early BEFORE admit"
+    if pd.isna(lag):
+        return "Missing"
+
+    if lag < -5:
+        return "Early >5 before DC"
+    elif -5 <= lag < -3:
+        return "Early 4–5 before DC"
+    elif -3 <= lag < -1:
+        return "Early 1–3 before DC"
+    elif lag == 0:
+        return "On discharge date"
+    elif 0 < lag <= 4:
+        return "Timely 0–4 days"
+    elif 5 <= lag <= 7:
+        return "Late 5–7"
+    elif 8 <= lag <= 10:
+        return "Late 8–10"
+    elif lag > 10:
+        return "Late >10"
+    return "Other"
+
+
+# ---------------------------------------------------------
+# 2. Simulation engine for any shift
+# ---------------------------------------------------------
+def simulate_scoring(shift_days):
+
+    pred_shifted = pred + pd.to_timedelta(shift_days, unit='D')
+
+    # Choose early discharge signal
+    use_auth = (
+        auth_dc.notna() &
+        auth_load.notna() &
+        (auth_load <= pred_shifted)
+    )
+
+    sim_base = pd.Series(pd.NaT, index=df.index)
+    sim_base[use_auth]  = auth_dc[use_auth]
+    sim_base[~use_auth] = pred_shifted[~use_auth]
+
+    # Respect first_scored_dt
+    sim_final = sim_base.copy()
+    late_mask = (first_scored.notna()) & (first_scored > sim_base)
+    sim_final[late_mask] = first_scored[late_mask]
+
+    lag = (sim_final - actual_dc).dt.days
+    lag_adm = (sim_final - actual_admit).dt.days
+
+    return lag, lag_adm
+
+
+# ---------------------------------------------------------
+# 3. Build table: CURRENT first + shifts –5..+5
+# ---------------------------------------------------------
+rows = []
+
+# ---------- CURRENT -----------------------------------------------------
+lag_cur = (first_scored - actual_dc).dt.days
+lag_adm_cur = (first_scored - actual_admit).dt.days
+
+df['bucket'] = [timing_bucket(l, la) for l, la in zip(lag_cur, lag_adm_cur)]
+bucket_counts = df['bucket'].value_counts(normalize=True).mul(100)
+
+# Prepare row
+row = {
+    'shift': 'CURRENT',
+    'capture_rate_pct': (lag_cur <= 4).mean() * 100,
+    'early_pct': (lag_cur < 0).mean() * 100,
+    'good_0_4d_pct': ((lag_cur >= 0) & (lag_cur <= 4)).mean() * 100,
+    'late_pct': (lag_cur > 4).mean() * 100
+}
+
+# Add bucket columns
+for bucket in [
+    "Early BEFORE admit",
+    "Early >5 before DC",
+    "Early 4–5 before DC",
+    "Early 1–3 before DC",
+    "On discharge date",
+    "Timely 0–4 days",
+    "Late 5–7",
+    "Late 8–10",
+    "Late >10",
+]:
+    row[bucket] = bucket_counts.get(bucket, 0)
+
+rows.append(row)
+
+
+# ---------- SHIFTS –5..+5 ---------------------------------------------
+for shift in range(-5, 6):
+
+    lag_sim, lag_adm_sim = simulate_scoring(shift)
+
+    df['bucket_sim'] = [
+        timing_bucket(l, la) for l, la in zip(lag_sim, lag_adm_sim)
+    ]
+
+    bucket_counts = df['bucket_sim'].value_counts(normalize=True).mul(100)
+
+    row = {
+        'shift': shift,
+        'capture_rate_pct': (lag_sim <= 4).mean() * 100,
+        'early_pct': (lag_sim < 0).mean() * 100,
+        'good_0_4d_pct': ((lag_sim >= 0) & (lag_sim <= 4)).mean() * 100,
+        'late_pct': (lag_sim > 4).mean() * 100
+    }
+    
+    # Add bucket columns
+    for bucket in [
+        "Early BEFORE admit",
+        "Early >5 before DC",
+        "Early 4–5 before DC",
+        "Early 1–3 before DC",
+        "On discharge date",
+        "Timely 0–4 days",
+        "Late 5–7",
+        "Late 8–10",
+        "Late >10",
+    ]:
+        row[bucket] = bucket_counts.get(bucket, 0)
+
+    rows.append(row)
+
+
+# ---------------------------------------------------------
+# 4. Final DataFrame
+# ---------------------------------------------------------
+results_df = pd.DataFrame(rows)
+
+print("===== FINAL SHIFT SIMULATION TABLE (CURRENT + SHIFTS –5 TO +5) =====")
+display(results_df)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+
+# ---------------------------------------------------------
+# 0. Ensure datetimes
+# ---------------------------------------------------------
+for c in [
+    'actual_admit_dt',
+    'tum_actual_discharge_dt',
+    'auth_actual_discharge_dt',
+    'auth_actual_discharge_load_dt',
+    'pred_discharge_dt',
+    'first_scored_dt'
+]:
+    df[c] = pd.to_datetime(df[c], errors='coerce')
+
+actual_admit  = df['actual_admit_dt']
+actual_dc     = df['tum_actual_discharge_dt']
+auth_dc       = df['auth_actual_discharge_dt']
+auth_load     = df['auth_actual_discharge_load_dt']
+pred          = df['pred_discharge_dt']
+first_scored  = df['first_scored_dt']
+
+# ---------------------------------------------------------
 # 1. CURRENT scoring lag
 # ---------------------------------------------------------
 df['lag_current'] = (first_scored - actual_dc).dt.days
