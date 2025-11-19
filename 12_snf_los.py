@@ -1,3 +1,98 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_lag_hist_pretty(lag_series, title, x_min=-10, x_max=10, y_max=None):
+    """
+    Pretty histogram + correct cumulative capture curve (0–x days only).
+    Early days (<0) do NOT contribute to cumulative capture.
+    """
+
+    # Drop NA & convert to int
+    lag = lag_series.dropna().astype(int)
+
+    # Clip extreme values to range
+    lag_clip = lag.clip(lower=x_min, upper=x_max)
+
+    # Build integer bins
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+    counts, edges = np.histogram(lag_clip, bins=bins)
+    centers = np.arange(x_min, x_max + 1)
+
+    total = counts.sum()
+
+    # ----- CORRECT cumulative capture: only count days >= 0 -----
+    post_counts = np.where(centers >= 0, counts, 0)
+    cum_capture = np.cumsum(post_counts) / total * 100
+
+    # ==== PLOT ====
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Histogram
+    ax1.bar(
+        centers,
+        counts,
+        width=0.8,
+        alpha=0.7,
+        color="#7BAAF7",
+        edgecolor="black"
+    )
+
+    if y_max:
+        ax1.set_ylim(0, y_max)
+
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax1.set_xticks(centers)
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+
+    # Cumulative curve on second axis
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_capture, color="darkred", marker="o")
+    ax2.set_ylim(0, 105)
+    ax2.set_ylabel("Cumulative % (0–x days only)")
+
+    # Label only for days >= 0
+    for x, y in zip(centers, cum_capture):
+        if x >= 0:
+            ax2.text(x, y + 1, f"{int(y)}%", ha="center", fontsize=9)
+
+    # Vertical guideline at day 4
+    ax2.axvline(4, color="gray", ls="--")
+
+    # Print capture rate on graph
+    capture_0_4 = post_counts[(centers >= 0) & (centers <= 4)].sum() / total * 100
+    ax2.text(4, capture_0_4 + 5,
+             f"0–4 Day Capture = {capture_0_4:.2f}%",
+             ha="center", fontsize=10, color="black")
+
+    plt.show()
+    
+    
+
+global_max = max(lag_current.value_counts().max(),
+                 lag_pred.value_counts().max())
+
+plot_lag_hist_pretty(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge",
+    y_max=global_max
+)
+
+plot_lag_hist_pretty(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge",
+    y_max=global_max
+)
+
+
+
+
+
+
+
+
+
 def compute_capture_cum(centers, counts):
     """
     Correct cumulative capture curve: 
