@@ -2,6 +2,89 @@
 import pandas as pd
 import numpy as np
 
+# Make sure datetime types are correct
+for c in [
+    'tum_actual_discharge_dt',      # ground truth actual discharge date
+    'pred_discharge_dt',            # predicted discharge date (LOS-based)
+    'auth_actual_discharge_dt',     # actual discharge date from auth feed
+    'auth_actual_discharge_load_dt',# date when auth_actual_discharge_dt was loaded
+    'first_scored_dt'               # first time the member was ever scored in current pipeline
+]:
+    df[c] = pd.to_datetime(df[c], errors='coerce')
+
+actual_truth = df['tum_actual_discharge_dt']
+pred         = df['pred_discharge_dt']
+auth_dc      = df['auth_actual_discharge_dt']
+auth_dc_load = df['auth_actual_discharge_load_dt']
+first_scored = df['first_scored_dt']
+
+# Shifts to test
+shifts = [-3, -2, -1, 0, 1, 2, 3]
+
+results = []
+
+for s in shifts:
+    # 1) Shift predicted discharge date
+    pred_shifted = pred + pd.to_timedelta(s, unit='D')
+    
+    # 2) Decide which discharge signal we would use as the *base* scoring date:
+    #    If auth actual discharge date is loaded on/before shifted predicted discharge date,
+    #    then use auth_actual_discharge_dt; else use shifted predicted discharge date.
+    use_auth = (
+        auth_dc.notna() &
+        auth_dc_load.notna() &
+        (auth_dc_load <= pred_shifted)
+    )
+    
+    sim_base_dt = pd.Series(pd.NaT, index=df.index)
+    sim_base_dt[use_auth]  = auth_dc[use_auth]
+    sim_base_dt[~use_auth] = pred_shifted[~use_auth]
+    
+    # 3) Respect first_scored_dt: cannot score before we ever started scoring
+    #    Final simulated scoring date = max(sim_base_dt, first_scored_dt)
+    sim_scoring_dt = sim_base_dt.copy()
+    mask_late_start = first_scored.notna() & (first_scored > sim_base_dt)
+    sim_scoring_dt[mask_late_start] = first_scored[mask_late_start]
+    
+    # 4) Compute lag vs true discharge (x-axis of your graph)
+    lag = (sim_scoring_dt - actual_truth).dt.days
+    
+    # 5) Buckets: early / good / late
+    early = (lag < 0).mean() * 100
+    good  = ((lag >= 0) & (lag <= 4)).mean() * 100   # RAP opportunity window
+    late  = (lag > 4).mean() * 100                   # lost opportunity
+    
+    capture = (lag <= 4).mean() * 100                # cases still within 4 days of discharge
+    
+    results.append([s, capture, early, good, late])
+
+results_df = pd.DataFrame(
+    results,
+    columns=['shift_days', 'capture_rate_pct', 'early_pct', 'good_0_4d_pct', 'late_gt4d_pct']
+)
+
+print("===== SHIFT OPTIMIZATION RESULTS (USING AUTH OR PRED DATES + FIRST_SCORED_DT) =====")
+display(results_df)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+
 # -------------------------------------------------------------
 # 0. ENSURE DATETIME TYPES (critical!)
 # -------------------------------------------------------------
