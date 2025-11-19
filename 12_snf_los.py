@@ -1,3 +1,31 @@
+import pandas as pd
+
+# ensure datetime types
+df['first_scored_dt'] = pd.to_datetime(df['first_scored_dt'], errors='coerce')
+df['tum_actual_discharge_dt'] = pd.to_datetime(df['tum_actual_discharge_dt'], errors='coerce')
+
+# lag in days between scoring and REAL discharge
+df['lag_current'] = (df['first_scored_dt'] - df['tum_actual_discharge_dt']).dt.days
+
+# capture rate: scored within 4 days since discharge
+current_capture_rate = (df['lag_current'] <= 4).mean() * 100
+
+# timing distribution
+current_early = (df['lag_current'] < 0).mean() * 100
+current_good  = ((df['lag_current'] >= 0) & (df['lag_current'] <= 4)).mean() * 100
+current_late  = (df['lag_current'] > 4).mean() * 100
+
+print("===== CURRENT CAPTURE PERFORMANCE =====")
+print(f"Current Capture Rate (<=4 days): {current_capture_rate:.2f}%")
+print(f"Early Sending (<0 days):         {current_early:.2f}%")
+print(f"Good Window (0–4 days):          {current_good:.2f}%")
+print(f"Late Sending (>4 days):          {current_late:.2f}%")
+
+
+
+
+
+
 
 import pandas as pd
 import numpy as np
