@@ -26,6 +26,193 @@ first_scored  = df['first_scored_dt']
 # ---------------------------------------------------------
 BUCKETS = [
     "Early BEFORE admit",   # admit-based
+    "Early >5 before DC",
+    "Early 4–5 before DC",
+    "Early 1–3 before DC",
+    "On discharge date",
+    "Timely 0–4 days",
+    "Late 5–7",
+    "Late 8–10",
+    "Late >10",
+]
+
+EARLY_BUCKETS = [
+    "Early BEFORE admit",
+    "Early >5 before DC",
+    "Early 4–5 before DC",
+    "Early 1–3 before DC",
+]
+
+GOOD_BUCKETS = [
+    "On discharge date",
+    "Timely 0–4 days",
+]
+
+LATE_BUCKETS = [
+    "Late 5–7",
+    "Late 8–10",
+    "Late >10",
+]
+
+def admit_bucket(days_before_admit):
+    """Return admit-based bucket or None."""
+    if pd.isna(days_before_admit):
+        return None
+    if days_before_admit <= 0:
+        return "Early BEFORE admit"
+    return None
+
+def lag_bucket(lag):
+    """Return lag-based bucket or 'Missing'."""
+    if pd.isna(lag):
+        return "Missing"
+
+    if lag < -5:
+        return "Early >5 before DC"
+    elif -5 <= lag < -3:
+        return "Early 4–5 before DC"
+    elif -3 <= lag < 0:
+        return "Early 1–3 before DC"
+    elif lag == 0:
+        return "On discharge date"
+    elif 0 < lag <= 4:
+        return "Timely 0–4 days"
+    elif 5 <= lag <= 7:
+        return "Late 5–7"
+    elif 8 <= lag <= 10:
+        return "Late 8–10"
+    elif lag > 10:
+        return "Late >10"
+
+    return "Missing"
+
+def assign_bucket(lag, days_before_admit):
+    """Admit bucket wins; else lag bucket."""
+    b_adm = admit_bucket(days_before_admit)
+    if b_adm is not None:
+        return b_adm
+    return lag_bucket(lag)
+
+# ---------------------------------------------------------
+# 2. Simulation engine (no bucket logic here)
+# ---------------------------------------------------------
+def simulate_scoring(shift_days: int):
+    pred_shifted = pred + pd.to_timedelta(shift_days, unit='D')
+
+    use_auth = (
+        auth_dc.notna() &
+        auth_load.notna() &
+        (auth_load <= pred_shifted)
+    )
+
+    sim_base = pd.Series(pd.NaT, index=df.index)
+    sim_base[use_auth]  = auth_dc[use_auth]
+    sim_base[~use_auth] = pred_shifted[~use_auth]
+
+    sim_final = sim_base.copy()
+    mask_late_start = first_scored.notna() & (first_scored > sim_base)
+    sim_final[mask_late_start] = first_scored[mask_late_start]
+
+    lag_vs_dc  = (sim_final - actual_dc).dt.days
+    lag_vs_adm = (sim_final - actual_admit).dt.days
+
+    return lag_vs_dc, lag_vs_adm
+
+# ---------------------------------------------------------
+# 3. Build results table: CURRENT + shifts -5..+5
+# ---------------------------------------------------------
+rows = []
+
+def build_row(label, lag_dc, lag_adm, bucket_col_name):
+    """
+    Helper to compute bucket fractions and summary metrics
+    from lag + days_before_admit.
+    """
+    df[bucket_col_name] = [
+        assign_bucket(l, la) for l, la in zip(lag_dc, lag_adm)
+    ]
+
+    bucket_frac = df[bucket_col_name].value_counts(normalize=True)  # 0–1
+
+    row = {
+        'shift': label,
+        'capture_rate': (lag_dc <= 4).mean(),  # identification window
+    }
+
+    # Fill atomic bucket columns
+    for b in BUCKETS:
+        row[b] = float(bucket_frac.get(b, 0.0))
+
+    # Derive early / good / late directly FROM buckets
+    row['early_frac']      = sum(row[b] for b in EARLY_BUCKETS)
+    row['good_0_4d_frac']  = sum(row[b] for b in GOOD_BUCKETS)
+    row['late_frac']       = sum(row[b] for b in LATE_BUCKETS)
+
+    # Sanity: all buckets partition the population
+    row['bucket_sum'] = sum(row[b] for b in BUCKETS)
+
+    return row
+
+# CURRENT
+lag_cur   = (first_scored - actual_dc).dt.days
+lag_adm_c = (first_scored - actual_admit).dt.days
+rows.append(build_row("CURRENT", lag_cur, lag_adm_c, 'bucket_cur'))
+
+# SHIFTS -5 .. +5
+for shift in range(-5, 6):
+    lag_sim, lag_adm_sim = simulate_scoring(shift)
+    rows.append(build_row(shift, lag_sim, lag_adm_sim, 'bucket_sim'))
+
+# ---------------------------------------------------------
+# 4. Final DataFrame (0–1 scale, Excel-friendly)
+# ---------------------------------------------------------
+results_df = pd.DataFrame(rows)
+
+print("===== CHECK: bucket_sum, early/good/late consistency =====")
+display(results_df[['shift', 'bucket_sum', 'early_frac', 'good_0_4d_frac', 'late_frac']])
+
+print("===== FULL RESULTS =====")
+display(results_df)
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+
+# ---------------------------------------------------------
+# 0. Ensure datetimes
+# ---------------------------------------------------------
+for c in [
+    'actual_admit_dt',
+    'tum_actual_discharge_dt',
+    'auth_actual_discharge_dt',
+    'auth_actual_discharge_load_dt',
+    'pred_discharge_dt',
+    'first_scored_dt'
+]:
+    df[c] = pd.to_datetime(df[c], errors='coerce')
+
+actual_admit  = df['actual_admit_dt']
+actual_dc     = df['tum_actual_discharge_dt']
+auth_dc       = df['auth_actual_discharge_dt']
+auth_load     = df['auth_actual_discharge_load_dt']
+pred          = df['pred_discharge_dt']
+first_scored  = df['first_scored_dt']
+
+# ---------------------------------------------------------
+# 1. Bucket definitions
+# ---------------------------------------------------------
+BUCKETS = [
+    "Early BEFORE admit",   # admit-based
     "Early >5 before DC",   # all others are lag-based
     "Early 4–5 before DC",
     "Early 1–3 before DC",
