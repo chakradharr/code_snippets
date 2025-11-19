@@ -1,3 +1,62 @@
+global_max = max(lag_current.value_counts().max(),
+                 lag_pred.value_counts().max())
+                
+                
+                
+def plot_lag_hist_pretty(lag_series, title, x_min=-10, x_max=10, y_max=None):
+    lag = lag_series.dropna().astype(int)
+    lag_clipped = lag.clip(lower=x_min, upper=x_max)
+
+    # integer bins
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+    counts, edges = np.histogram(lag_clipped, bins=bins)
+    centers = np.arange(x_min, x_max + 1)
+
+    cum_pct = np.cumsum(counts) / counts.sum() * 100
+
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Histogram
+    ax1.bar(
+        centers,
+        counts,
+        width=0.8,
+        color="#7BAAF7",
+        edgecolor="black",
+        linewidth=0.5,
+        alpha=0.7
+    )
+
+    # FORCE SAME Y-LIMIT FOR ALL PLOTS
+    if y_max is not None:
+        ax1.set_ylim(0, y_max)
+
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax1.set_xticks(np.arange(x_min, x_max + 1))
+
+    # cumulative % line
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_pct, marker="o", color="#B71C1C", linewidth=2)
+    ax2.set_ylabel("Cumulative % of cases")
+    ax2.set_ylim(0, 105)
+
+    for x, y in zip(centers, cum_pct):
+        ax2.text(x, y + 1, f"{int(y)}%", ha="center", va="bottom", fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+
+
+
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 
