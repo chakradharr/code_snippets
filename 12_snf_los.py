@@ -1,3 +1,93 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_lag_hist_pretty_capture(lag_series, title, x_min=-10, x_max=10, y_max=None):
+    lag = lag_series.dropna().astype(int)
+    lag_clipped = lag.clip(lower=x_min, upper=x_max)
+
+    # integer bins
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+    counts, edges = np.histogram(lag_clipped, bins=bins)
+    centers = np.arange(x_min, x_max + 1)  # -10 .. 10
+
+    total = counts.sum()
+
+    # ----- cumulative for ALL cases (P(lag <= x)) -----
+    cum_pct_all = np.cumsum(counts) / total * 100
+
+    # ----- cumulative for POST-DISCHARGE ONLY (P(0 <= lag <= x)) -----
+    counts_post = counts.copy()
+    counts_post[centers < 0] = 0           # zero out early bins
+    cum_pct_post = np.cumsum(counts_post) / total * 100
+
+    # capture rate = P(0 <= lag <= 4)
+    capture_mask = (centers >= 0) & (centers <= 4)
+    capture_rate = counts_post[capture_mask].sum() / total * 100
+
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Histogram
+    ax1.bar(
+        centers,
+        counts,
+        width=0.8,
+        color="#7BAAF7",
+        edgecolor="black",
+        linewidth=0.5,
+        alpha=0.7
+    )
+    if y_max is not None:
+        ax1.set_ylim(0, y_max)
+
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax1.set_xticks(np.arange(x_min, x_max + 1))
+
+    # Cumulative %: POST-DISCHARGE ONLY (this is what you care about)
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_pct_post, marker="o", color="#B71C1C", linewidth=2, label="Cum % (0+ days)")
+    ax2.set_ylabel("Cumulative % of cases")
+    ax2.set_ylim(0, 105)
+
+    # Label curve
+    for x, y in zip(centers, cum_pct_post):
+        if x >= 0:  # label only non-negative days to avoid clutter
+            ax2.text(x, y + 1, f"{int(y)}%", ha="center", va="bottom", fontsize=8)
+
+    # Mark capture at 4 days explicitly
+    ax2.axvline(4, color="gray", linestyle="--", linewidth=1)
+    ax2.text(4, capture_rate + 3, f"Capture 0–4d: {capture_rate:.0f}%", 
+             ha="center", va="bottom", fontsize=9, color="black")
+
+    plt.tight_layout()
+    plt.show()
+    
+    
+global_max = max(lag_current.value_counts().max(),
+                 lag_pred.value_counts().max())
+
+plot_lag_hist_pretty_capture(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge (−10 to +10)",
+    x_min=-10, x_max=10, y_max=global_max
+)
+
+plot_lag_hist_pretty_capture(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge (−10 to +10)",
+    x_min=-10, x_max=10, y_max=global_max
+)
+
+
+
+
+
+
+
+
+
 # compute shared Y-axis limit
 global_max = max(lag_current.value_counts().max(),
                  lag_pred.value_counts().max())
