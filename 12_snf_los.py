@@ -1,3 +1,23 @@
+# compute shared Y-axis limit
+global_max = max(lag_current.value_counts().max(),
+                 lag_pred.value_counts().max())
+
+plot_lag_hist_pretty(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge (−10 to +10)",
+    y_max=global_max
+)
+
+plot_lag_hist_pretty(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge (−10 to +10)",
+    y_max=global_max
+)
+
+
+
+
+
 global_max = max(lag_current.value_counts().max(),
                  lag_pred.value_counts().max())
                 
