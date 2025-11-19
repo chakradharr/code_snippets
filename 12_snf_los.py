@@ -1,6 +1,79 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def plot_lag_hist_with_cum(lag_series, title, x_min=-10, x_max=10):
+    """
+    lag_series: Series of ints/floats in days.
+    x_min, x_max: range to display on x-axis.
+    Tails (<x_min and >x_max) are clipped into the edge bins,
+    so cumulative % still goes to 100%.
+    """
+    lag = lag_series.dropna().astype(int)
+
+    # clip extreme values into the visible range
+    lag_clipped = lag.clip(lower=x_min, upper=x_max)
+
+    # integer-day bins from x_min to x_max
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+
+    counts, edges = np.histogram(lag_clipped, bins=bins)
+    centers = (edges[:-1] + edges[1:]) / 2
+
+    total = counts.sum()
+    cum_counts = np.cumsum(counts)
+    cum_pct = cum_counts / total * 100
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # histogram (counts)
+    ax1.bar(centers, counts, width=0.9, color="#4a90e2", alpha=0.7)
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+
+    # cumulative % line
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_pct, marker="o", color="darkred")
+    ax2.set_ylabel("Cumulative % of cases")
+    ax2.set_ylim(0, 105)   # a bit above 100 for labels
+
+    # labels on cumulative points
+    for x, y in zip(centers, cum_pct):
+        ax2.text(x, y, f"{y:.0f}%", ha="center", va="bottom", fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# ===== Reuse your lag_current and lag_pred from before =====
+
+plot_lag_hist_with_cum(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge Date (Zoomed –10 to +10)",
+    x_min=-10,
+    x_max=10
+)
+
+plot_lag_hist_with_cum(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge Date (Zoomed –10 to +10)",
+    x_min=-10,
+    x_max=10
+)
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
 # -------------------------------------------------------------
 # 1. Build predicted scoring date (NO SHIFT)
 # -------------------------------------------------------------
