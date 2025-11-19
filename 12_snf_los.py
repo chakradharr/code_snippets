@@ -1,4 +1,123 @@
 import pandas as pd
+import numpy as np
+
+# --------------------------------------------------------------------
+# 0. Ensure datetime conversion
+# --------------------------------------------------------------------
+for c in [
+    'tum_actual_discharge_dt',
+    'auth_actual_discharge_dt',
+    'auth_actual_discharge_load_dt',
+    'pred_discharge_dt',
+    'first_scored_dt'
+]:
+    df[c] = pd.to_datetime(df[c], errors='coerce')
+
+actual      = df['tum_actual_discharge_dt']
+auth_dc     = df['auth_actual_discharge_dt']
+auth_load   = df['auth_actual_discharge_load_dt']
+pred        = df['pred_discharge_dt']
+first_scored = df['first_scored_dt']
+
+# --------------------------------------------------------------------
+# 1. CURRENT SCORING: lag_current = first_scored_dt - actual_discharge
+# --------------------------------------------------------------------
+df['lag_current'] = (first_scored - actual).dt.days
+
+# --------------------------------------------------------------------
+# 2. SIMULATED SCORING USING RULE:
+#    (If auth discharge is loaded before predicted, use auth actual dc;
+#     else use predicted. But NEVER earlier than first_scored_dt)
+# --------------------------------------------------------------------
+
+def simulate_scoring(pred_shift_days):
+    pred_shifted = pred + pd.to_timedelta(pred_shift_days, unit='D')
+
+    use_auth = (
+        auth_dc.notna() &
+        auth_load.notna() &
+        (auth_load <= pred_shifted)
+    )
+
+    # base scoring date = either auth actual discharge OR shifted predicted discharge
+    sim_base = pd.Series(pd.NaT, index=df.index)
+    sim_base[use_auth]  = auth_dc[use_auth]
+    sim_base[~use_auth] = pred_shifted[~use_auth]
+    
+    # respect first scoring (cannot go earlier)
+    final_sim = sim_base.copy()
+    mask = (first_scored.notna()) & (first_scored > sim_base)
+    final_sim[mask] = first_scored[mask]
+    
+    return (final_sim - actual).dt.days  # lag in days
+
+
+df['lag_sim_0'] = simulate_scoring(0)   # no shift case
+
+# --------------------------------------------------------------------
+# 3. Define EARLY and LATE granular buckets
+# --------------------------------------------------------------------
+
+def timing_bucket(lag):
+    if pd.isna(lag):
+        return "Missing"
+    
+    # EARLY buckets (<0)
+    if lag < -5:
+        return "Early >5 days before discharge"
+    elif -5 <= lag < -3:
+        return "Early 4–5 days before discharge"
+    elif -3 <= lag < -1:
+        return "Early 1–3 days before discharge"
+    elif lag == 0:
+        return "On the discharge date"
+    
+    # ON-TIME window (0–4)
+    elif 0 < lag <= 4:
+        return "Timely (0–4 days)"
+    
+    # LATE buckets (>4)
+    elif 5 <= lag <= 7:
+        return "Late 5–7 days"
+    elif 8 <= lag <= 10:
+        return "Late 8–10 days"
+    elif lag > 10:
+        return "Late >10 days"
+    
+    return "Other"
+
+# --------------------------------------------------------------------
+# 4. Apply buckets for CURRENT and SIMULATED scoring
+# --------------------------------------------------------------------
+df['current_bucket']  = df['lag_current'].apply(timing_bucket)
+df['sim_bucket']      = df['lag_sim_0'].apply(timing_bucket)
+
+# --------------------------------------------------------------------
+# 5. Summary distribution tables
+# --------------------------------------------------------------------
+current_dist = df['current_bucket'].value_counts(normalize=True).mul(100).round(2)
+sim_dist     = df['sim_bucket'].value_counts(normalize=True).mul(100).round(2)
+
+print("====== CURRENT SCORING TIMING DISTRIBUTION (%) ======")
+display(current_dist)
+
+print("\n====== SIMULATED SCORING TIMING DISTRIBUTION (%) ======")
+display(sim_dist)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mimport pandas as pd
 
 # ensure datetime types
 df['first_scored_dt'] = pd.to_datetime(df['first_scored_dt'], errors='coerce')
