@@ -1,6 +1,90 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def plot_lag_hist_pretty(lag_series, title, x_min=-10, x_max=10):
+    """
+    Clean histogram + cumulative percent plot for lag distribution.
+    """
+    lag = lag_series.dropna().astype(int)
+
+    # Clip extreme values into visible range
+    lag_clipped = lag.clip(lower=x_min, upper=x_max)
+
+    # Integer bins
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+
+    counts, edges = np.histogram(lag_clipped, bins=bins)
+
+    # Centers for bars & cumulative points
+    centers = np.arange(x_min, x_max + 1)
+
+    # cumulative %
+    cum_pct = np.cumsum(counts) / counts.sum() * 100
+
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Clean histogram
+    ax1.bar(
+        centers,
+        counts,
+        width=0.8,
+        color="#7BAAF7",
+        edgecolor="black",
+        linewidth=0.5,
+        alpha=0.7
+    )
+
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax1.set_xticks(np.arange(x_min, x_max + 1))
+
+    # Cumulative line (clean)
+    ax2 = ax1.twinx()
+    ax2.plot(
+        centers,
+        cum_pct,
+        marker="o",
+        color="#B71C1C",
+        linewidth=2
+    )
+    ax2.set_ylabel("Cumulative % of cases")
+    ax2.set_ylim(0, 105)
+
+    # Add labels on curve
+    for x, y in zip(centers, cum_pct):
+        ax2.text(x, y + 1, f"{int(y)}%", ha="center", va="bottom", fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# ===== CALLS =====
+
+plot_lag_hist_pretty(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge (–10 to +10)"
+)
+
+plot_lag_hist_pretty(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge (–10 to +10)"
+)
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
 def plot_lag_hist_with_cum(lag_series, title, x_min=-10, x_max=10):
     """
     lag_series: Series of ints/floats in days.
