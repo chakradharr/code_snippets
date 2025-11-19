@@ -4,6 +4,85 @@ import matplotlib.pyplot as plt
 def plot_lag_hist_with_cum(lag_series, title, x_min=-10, x_max=10):
     """
     lag_series: Series of ints/floats in days.
+    x_min, x_max: integer range to display on x-axis.
+    Values < x_min and > x_max are clipped into the edge bins.
+    """
+    lag = lag_series.dropna().astype(int)
+
+    # clip extreme values into visible range
+    lag_clipped = lag.clip(lower=x_min, upper=x_max)
+
+    # integer-day bins: [x_min, x_min+1, ..., x_max+1]
+    # each bar is 1 day wide, starting at the integer
+    bins = np.arange(x_min, x_max + 2, 1)  # +2 so last bin is [x_max, x_max+1)
+
+    counts, edges = np.histogram(lag_clipped, bins=bins)
+
+    # bar positions: left edges are integers
+    left_edges = edges[:-1]  # x_min .. x_max
+    centers = left_edges + 0.5  # for cumulative line
+
+    total = counts.sum()
+    cum_counts = np.cumsum(counts)
+    cum_pct = cum_counts / total * 100
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # histogram: one bar per integer day
+    ax1.bar(left_edges, counts, width=1.0, align="edge", color="#4a90e2", alpha=0.7)
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+
+    # show only integer days from x_min to x_max
+    ax1.set_xlim(x_min, x_max + 1)
+    ax1.set_xticks(range(x_min, x_max + 1))
+
+    # cumulative % line
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_pct, marker="o", color="darkred")
+    ax2.set_ylabel("Cumulative % of cases")
+    ax2.set_ylim(0, 105)
+
+    # labels on cumulative points
+    for x, y in zip(centers, cum_pct):
+        ax2.text(x, y, f"{y:.0f}%", ha="center", va="bottom", fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# ===== Reuse your lag_current and lag_pred from before =====
+
+plot_lag_hist_with_cum(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge Date (−10 to +10)",
+    x_min=-10,
+    x_max=10
+)
+
+plot_lag_hist_with_cum(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge Date (−10 to +10)",
+    x_min=-10,
+    x_max=10
+)
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_lag_hist_with_cum(lag_series, title, x_min=-10, x_max=10):
+    """
+    lag_series: Series of ints/floats in days.
     x_min, x_max: range to display on x-axis.
     Tails (<x_min and >x_max) are clipped into the edge bins,
     so cumulative % still goes to 100%.
