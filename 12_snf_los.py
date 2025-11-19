@@ -1,3 +1,105 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# -------------------------------------------------------------
+# 1. Build predicted scoring date (NO SHIFT)
+# -------------------------------------------------------------
+
+# predicted discharge date from LOS
+pred_dc = df["pred_discharge_dt"]
+
+# actual auth discharge date & its load date
+auth_dc = df["auth_actual_discharge_dt"]
+auth_load = df["auth_actual_discharge_load_dt"]
+
+# rule:
+# if auth_discharge_dt is loaded BEFORE predicted_dc → use auth_dc
+# else → use predicted discharge date
+use_auth = (
+    auth_dc.notna() &
+    auth_load.notna() &
+    (auth_load <= pred_dc)
+)
+
+sim_scoring_dt = pred_dc.copy()
+sim_scoring_dt[use_auth] = auth_dc[use_auth]   # override
+
+
+# -------------------------------------------------------------
+# 2. Compute lags (days between scoring date and true discharge)
+# -------------------------------------------------------------
+actual_dc = df["tum_actual_discharge_dt"]
+
+lag_current = (df["first_scored_dt"] - actual_dc).dt.days
+lag_pred = (sim_scoring_dt - actual_dc).dt.days
+
+
+# -------------------------------------------------------------
+# 3. Helper plot function: Histogram + cumulative %
+# -------------------------------------------------------------
+def plot_lag_hist_with_cum(lag_series, title):
+    lag = lag_series.dropna().astype(int)
+
+    # integer-day bins
+    bin_min = lag.min()
+    bin_max = lag.max()
+    bins = np.arange(bin_min - 0.5, bin_max + 1.5, 1)
+
+    counts, edges = np.histogram(lag, bins=bins)
+    centers = (edges[:-1] + edges[1:]) / 2
+
+    total = counts.sum()
+    cum_counts = np.cumsum(counts)
+    cum_pct = cum_counts / total * 100
+
+    # figure
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # histogram (counts)
+    ax1.bar(centers, counts, width=0.9, color="#4a90e2", alpha=0.7)
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+
+    # cumulative % curve
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_pct, marker="o", color="darkred")
+    ax2.set_ylabel("Cumulative % of cases")
+
+    # label cumulative % on each point
+    for x, y in zip(centers, cum_pct):
+        ax2.text(x, y, f"{y:.0f}%", ha="center", va="bottom", fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# -------------------------------------------------------------
+# 4. PLOTS
+# -------------------------------------------------------------
+
+plot_lag_hist_with_cum(
+    lag_current,
+    "Current Scoring Lag vs Actual Discharge Date"
+)
+
+plot_lag_hist_with_cum(
+    lag_pred,
+    "Predicted Discharge Date — Scoring Lag vs Actual Discharge Date"
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
 import pandas as pd
 import numpy as np
 
