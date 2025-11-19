@@ -1,3 +1,99 @@
+def compute_capture_cum(centers, counts):
+    """
+    Correct cumulative capture curve: 
+    Includes only days >= 0 and <= x.
+    Early days contribute ZERO.
+    """
+    total = counts.sum()
+    
+    # Zero out early days
+    post_counts = np.where(centers >= 0, counts, 0)
+
+    # Cumulative ONLY from 0 upward
+    cum = np.cumsum(post_counts)
+
+    cum_pct = cum / total * 100
+    return cum_pct
+    
+    
+
+def plot_correct_capture(lag_series, title, x_min=-10, x_max=10, y_max=None):
+    lag = lag_series.dropna().astype(int)
+    lag_clip = lag.clip(lower=x_min, upper=x_max)
+
+    # Build integer bins
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+    counts, edges = np.histogram(lag_clip, bins=bins)
+    centers = np.arange(x_min, x_max + 1)
+
+    total = counts.sum()
+
+    # ----- CORRECT cumulative (capture only: 0–4 days) -----
+    post_counts = np.where(centers >= 0, counts, 0)
+    cum_post = np.cumsum(post_counts) / total * 100
+
+    # capture rate EXACTLY matches your summary table
+    capture_rate = post_counts[(centers >= 0) & (centers <= 4)].sum() / total * 100
+
+    # ========== PLOT ==========
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Histogram
+    ax1.bar(
+        centers, counts,
+        width=0.8, alpha=0.7,
+        color="#7BAAF7", edgecolor="black"
+    )
+
+    if y_max:
+        ax1.set_ylim(0, y_max)
+
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax1.set_xticks(centers)
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+
+    # Cumulative curve showing CAPTURE ONLY
+    ax2 = ax1.twinx()
+    ax2.plot(centers, cum_post, color="darkred", marker="o")
+    ax2.set_ylim(0, 105)
+    ax2.set_ylabel("Cumulative % (0–x days only)")
+
+    # Label
+    for x, y in zip(centers, cum_post):
+        if x >= 0:
+            ax2.text(x, y+1, f"{int(y)}%", ha="center")
+
+    # Vertical line at 4 days
+    ax2.axvline(4, color="gray", ls="--")
+    ax2.text(4, capture_rate+3, f"Capture 0–4 days = {capture_rate:.2f}%", 
+             ha="center", fontsize=10)
+
+    plt.show()
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 
