@@ -1,6 +1,143 @@
 import pandas as pd
 import numpy as np
 
+# ---------------------------------------------------------
+# 0. Ensure datetimes
+# ---------------------------------------------------------
+for c in [
+    'actual_admit_dt',
+    'tum_actual_discharge_dt',
+    'auth_actual_discharge_dt',
+    'auth_actual_discharge_load_dt',
+    'pred_discharge_dt',
+    'first_scored_dt'
+]:
+    df[c] = pd.to_datetime(df[c], errors='coerce')
+
+actual_admit  = df['actual_admit_dt']
+actual_dc     = df['tum_actual_discharge_dt']
+auth_dc       = df['auth_actual_discharge_dt']
+auth_load     = df['auth_actual_discharge_load_dt']
+pred          = df['pred_discharge_dt']
+first_scored  = df['first_scored_dt']
+
+# ---------------------------------------------------------
+# 1. CURRENT scoring lag
+# ---------------------------------------------------------
+df['lag_current'] = (first_scored - actual_dc).dt.days
+df['days_before_admit_current'] = (first_scored - actual_admit).dt.days
+
+# ---------------------------------------------------------
+# 2. SIMULATED scoring (shift = 0 for baseline)
+#    Use earlier of predicted vs auth discharge (only if auth loaded by then)
+#    But never before first_scored_dt
+# ---------------------------------------------------------
+
+def simulate_scoring(pred_shift_days):
+    pred_shifted = pred + pd.to_timedelta(pred_shift_days, unit='D')
+
+    use_auth = (
+        auth_dc.notna() &
+        auth_load.notna() &
+        (auth_load <= pred_shifted)
+    )
+
+    # Base scoring dt from earliest discharge signal
+    sim_base = pd.Series(pd.NaT, index=df.index)
+    sim_base[use_auth]  = auth_dc[use_auth]
+    sim_base[~use_auth] = pred_shifted[~use_auth]
+
+    # Respect first_scored_dt
+    sim_final = sim_base.copy()
+    mask = (first_scored.notna()) & (first_scored > sim_base)
+    sim_final[mask] = first_scored[mask]
+
+    return sim_final
+
+sim_dt = simulate_scoring(0)   # no shift baseline
+
+df['lag_sim'] = (sim_dt - actual_dc).dt.days
+df['days_before_admit_sim'] = (sim_dt - actual_admit).dt.days
+
+# ---------------------------------------------------------
+# 3. COMPLETE BUCKET LOGIC (with before-admit check)
+# ---------------------------------------------------------
+
+def timing_bucket(lag, days_before_admit):
+    # 1. EARLY BEFORE ADMIT DATE
+    if pd.notna(days_before_admit) and days_before_admit <= 0:
+        return "Early BEFORE admit date"
+    
+    # If lag missing
+    if pd.isna(lag):
+        return "Missing"
+
+    # 2. EARLY BEFORE DISCHARGE
+    if lag < -5:
+        return "Early >5 days before discharge"
+    elif -5 <= lag < -3:
+        return "Early 4–5 days before discharge"
+    elif -3 <= lag < -1:
+        return "Early 1–3 days before discharge"
+    elif lag == 0:
+        return "On discharge date"
+
+    # 3. GOOD window (RAP opportunity)
+    elif 0 < lag <= 4:
+        return "Timely (0–4 days after discharge)"
+
+    # 4. LATE buckets
+    elif 5 <= lag <= 7:
+        return "Late 5–7 days"
+    elif 8 <= lag <= 10:
+        return "Late 8–10 days"
+    elif lag > 10:
+        return "Late >10 days"
+
+    return "Other"
+
+
+df['current_bucket'] = df.apply(
+    lambda r: timing_bucket(r['lag_current'], r['days_before_admit_current']),
+    axis=1
+)
+
+df['sim_bucket'] = df.apply(
+    lambda r: timing_bucket(r['lag_sim'], r['days_before_admit_sim']),
+    axis=1
+)
+
+# ---------------------------------------------------------
+# 4. Summary distributions
+# ---------------------------------------------------------
+
+current_dist = df['current_bucket'].value_counts(normalize=True).mul(100).round(2)
+sim_dist     = df['sim_bucket'].value_counts(normalize=True).mul(100).round(2)
+
+print("======== CURRENT SCORING TIMING ========")
+display(current_dist)
+
+print("\n======== SIMULATED SCORING TIMING ========")
+display(sim_dist)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+
 # --------------------------------------------------------------------
 # 0. Ensure datetime conversion
 # --------------------------------------------------------------------
