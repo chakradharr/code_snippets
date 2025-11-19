@@ -1,0 +1,237 @@
+RAP Discharge Date Simulation — Detailed Technical Documentation
+1. Background & Problem Context
+RAP (Readmission Avoidance Program) begins scoring members immediately once an inpatient (IP) authorization is received.
+
+Because authorization is often submitted at admission, members frequently get identified **before the actual discharge date**.
+
+ 
+
+Care Management (CM) teams reported operational issues:
+
+• Members are very hard to reach while inpatient → low UTR, low engagement  
+
+• Nurses manually check discharge status → productivity loss  
+
+• Too many “early” cases; too few “timely post‑discharge” opportunities  
+
+ 
+
+Analytics was asked to:
+
+1. Measure delays in receiving discharge date in auth system  
+
+2. Estimate impact of using predicted discharge date as proxy  
+
+3. Evaluate operational impact of delaying identification closer to discharge
+
+2. Data Used
+Primary date fields:
+
+• first_scored_dt — First RAP scoring date  
+
+• actual_discharge_dt — Actual discharge  
+
+• actual_discharge_loaded_dt — When discharge arrives in auth system  
+
+• admit_dt — Inpatient admit date  
+
+• tum_act_los_day_cnt — True LOS  
+
+ 
+
+Prediction model fields:
+
+• avg_los_grp, median_los_grp  
+
+• avg_los_ctg, median_los_ctg  
+
+ 
+
+We used 2024 for model logic; 2025 data for evaluation.
+
+3. LOS Prediction Modeling Summary
+Several rule-based LOS models were attempted:
+
+1. Median LOS by diagnosis category  
+
+2. Median LOS by diagnosis + service type + admission status  
+
+ 
+
+Performance:
+
+• Baseline MAE ≈ 2.41 days  
+
+• Enhanced grouping MAE ≈ 2.20 days  
+
+ 
+
+This accuracy is sufficient to approximate a “predicted discharge date.”
+
+4. Current Scoring Behavior (Baseline)
+Lag calculation:
+
+lag_current = first_scored_dt − actual_discharge_dt
+
+ 
+
+Results:
+
+• 69% of cases identified BEFORE discharge  
+
+• 28% identified within RAP 0–4 day window  
+
+• 2% late (≥5 days post‑discharge)
+
+ 
+
+Operational issue: Scoring too early → low member engagement.
+
+5. Predicted Discharge Simulation Logic
+Simulated scoring date:
+
+sim_score_dt = earliest(
+
+   predicted_discharge_dt,
+
+   actual_discharge_loaded_dt,
+
+   first_scored_dt
+
+)
+
+ 
+
+This ensures:
+
+• We do not score before actual discharge if discharge posts earlier  
+
+• We do not score later than current process  
+
+• Predicted discharge anchors scoring near day 0
+
+6. Bucket Definitions
+EARLY (before discharge):
+
+• Early_on_or_before_admit → sim_score_dt ≤ admit_dt  
+
+• Early_>5_before_DC → lag ≤ −5  
+
+• Early_4_5_before_DC → lag = −4 or −5  
+
+• Early_1_3_before_DC → lag = −1 to −3  
+
+ 
+
+GOOD (RAP opportunity):
+
+• On_discharge_date → lag = 0  
+
+• Timely_0_4_days → lag = 1 to 4  
+
+ 
+
+LATE (lost opportunity):
+
+• Late_5_7  
+
+• Late_8_10  
+
+• Late_>10
+
+7. Simulation Results (Shift −5 to +5)
+We tested the impact of shifting predicted discharge date by:
+
+shift ∈ {−5, −4, …, 0, …, +5}
+
+ 
+
+Metrics evaluated:
+
+• capture_rate (0–4 days)  
+
+• early_frac  
+
+• good_0_4d_frac  
+
+• late_frac  
+
+ 
+
+Shift = 0 results:
+
+• Early reduced from 69% → 41%  
+
+• Good/timely increased from 28% → 57%  
+
+• Late remained low around 2–3%  
+
+ 
+
+This is the “sweet spot.”
+
+8. Key Findings
+1. Predicted discharge date dramatically reduces early identification load  
+
+2. RAP capture rate remains stable around 97–98%  
+
+3. Good identification nearly doubles  
+
+4. Very small increase in late cases  
+
+5. Excellent operational improvement with minimal risk
+
+9. Histogram + Cumulative % Insights
+Two plots were produced:
+
+1. Current scoring vs discharge  
+
+2. Predicted scoring vs discharge  
+
+ 
+
+Observations:
+
+• Current scoring distribution heavily left-skewed (inpatient scoring)  
+
+• Predicted scoring centered around day 0  
+
+• Cumulative % reaches accurate 97% by day 4  
+
+• Visual shift confirms reduction in early identification
+
+10. Recommended Implementation
+Final scoring logic should be:
+
+final_score_dt = earliest(
+
+   predicted_discharge_dt,
+
+   actual_discharge_loaded_dt,
+
+   first_scored_dt
+
+)
+
+ 
+
+Expected CM improvements:
+
+• Higher engagement  
+
+• Less manual discharge checking  
+
+• More timely post-discharge outreach  
+
+• Better member experience
+
+11. Next Steps
+• Validate on more 2025 months (Q1–Q3)  
+
+• Validate performance by LOB: Medicare / Medicaid / Commercial / DSNP  
+
+• Evaluate facility-level behavior  
+
+• Consider additional signals (admit class, attending specialty)  
+
+• Define production logic & monitoring
