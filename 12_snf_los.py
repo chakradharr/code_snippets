@@ -1,3 +1,75 @@
+Readmission Avoidance Program (RAP) Initiatives
+
+RAP Scoring Timing Optimization – LOS-Based Predicted Discharge
+	•	Identified an operational gap in when Medicare IP members are first scored for RAP relative to discharge.
+	•	Designed a simple LOS-based predicted discharge framework and showed how re-anchoring scoring around predicted discharge shifts referrals from “too-early” inpatient cases to early post-discharge, when members are more reachable.
+	•	Framed the work as a timing optimization (no model change), translated results into an executive-ready story, and recommended a pilot to Medicare CM leadership to improve referral quality and CM workflow.
+
+RAP Model Monitoring and Intelligent Monitoring Foundation
+	•	Led the buildout of a standardized Medicare RAP model monitoring framework in partnership with Data Engineering, including metric definitions, collection logic, and near real-time dashboards.
+	•	Facilitated workgroup sessions with Clinical DS and DE to align on key monitoring metrics and ensure consistency between models and reporting.
+	•	Laid the groundwork for intelligent monitoring by defining logic to track score distributions, feature stability, and outreach performance, enabling earlier detection of issues post-deployment.
+
+RAP–SHJ Integration and Identification Logic
+	•	Collaborated with the SHJ team to refine how RAP scores are consumed in the SHJ engine so that case routing better reflects nurse capacity, program goals, and engagement rules.
+	•	Streamlined RAP identification logic to be more consistent with program identification, improving transparency for partners on which members are flagged and why.
+	•	Conducted discharge-date investigations and follow-up analyses to ensure that identification timing aligns with actual discharge and avoids missed or premature referrals.
+
+⸻
+
+Post-Acute / SNF and Transitions of Care Analytics
+
+SNF Length of Stay and Post-Acute Performance vs. RAP Acute
+	•	Conducted analyses comparing SNF program performance to RAP acute, focusing on measures such as length of stay, readmissions, and engagement.
+	•	Evaluated how SNF risk scores help identify long-stay or high-need SNF admissions and where they add unique value beyond acute RAP models.
+	•	Summarized findings for clinical and product partners to inform future direction of post-acute programs and Transitions of Care product roadmaps.
+
+Data Quality and Pipeline Refinements for Acute and Post-Acute Metrics
+	•	Worked with DE to remove transplant IP cases from the ACC/RAP pipeline where clinical pathways differ, improving the relevance of model outputs and reporting.
+	•	Performed QC checks on RAP dashboards to ensure alignment between metric definitions, filters, and pipeline logic, strengthening stakeholder trust in reported performance.
+
+⸻
+
+ER Diversion Evaluation and Program Insights
+
+Great Lakes ER Diversion – Evaluation Study and Action Items
+	•	Partnered with Clinical and Product teams on the Great Lakes ER Diversion evaluation, helping define metrics, refine the design, and interpret program performance.
+	•	Translated analytical findings into clear recommendations and action items, supporting refinement of ER diversion strategy and prioritization of next steps.
+
+⸻
+
+Advanced Methods, Risk Adjustment, and Ad-Hoc Analytics
+
+Propensity and Matching Methods for Program Evaluation
+	•	Implemented and supported propensity-based matching and weighting methods to better align treatment and comparison groups in evaluations.
+	•	Helped teams interpret results and understand the trade-offs of different approaches, improving the rigor and credibility of program impact estimates.
+
+Enhanced Context and Risk-Adjustment Flags
+	•	Added and validated new context flags (VBC vs. non-VBC, PCP attribution, SDOH-related indicators, rural/urban and accessibility flags) to strengthen risk adjustment and segmentation.
+	•	Enabled more nuanced reporting and evaluation by giving stakeholders the ability to slice results by provider type, social risk, and geography.
+
+⸻
+
+Innovation Pilot, MLOps, and Mentorship
+
+LLM / GenAI-Enabled RAP Enhancements and Intern Mentorship
+	•	Piloted the use of LLM/GenAI and clinical notes to enhance RAP models, exploring how unstructured data can improve prediction and member stratification.
+	•	Mentored a summer intern on Commercial RAP model enhancement using clinical notes and GenAI/LLM techniques, guiding them through problem framing, feature engineering, evaluation, and alignment with enterprise goals.
+
+MLOps Framework and Collaboration with Data Engineering
+	•	Partnered with DE to evolve the RAP monitoring work into a broader MLOps framework, including discussions on standard pipelines, scheduling of monitoring jobs in the cloud environment, and how to scale the approach across models.
+	•	Helped bridge analytics and engineering perspectives, ensuring that monitoring solutions are both technically sound and practically useful for clinical and CM stakeholders.
+
+
+
+
+
+
+
+
+
+
+
 Slide 4 – Proposed Change & Pilot Plan
 
 Title:
