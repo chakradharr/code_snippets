@@ -1,3 +1,30 @@
+import pandas as pd
+
+# (optional) tag them if not already tagged
+train_feat = train_feat.copy()
+test_feat  = test_feat.copy()
+
+train_feat['set'] = 'train'
+test_feat['set']  = 'test'
+
+# Combine
+full_feat = pd.concat([train_feat, test_feat], axis=0)
+
+# Keep original row order if you care about it
+full_feat = full_feat.sort_index()
+
+# Now you can do:
+# full_feat[full_feat['set'] == 'test']  -> test rows
+# full_feat[full_feat['set'] == 'train'] -> train rows
+
+
+
+
+
+
+
+
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
