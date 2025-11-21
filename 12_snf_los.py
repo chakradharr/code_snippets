@@ -1,3 +1,98 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_lag_hist_pretty(lag_series, title, x_min=-10, x_max=10):
+    """
+    Clean histogram + cumulative percent plot for lag distribution.
+    Adds:
+      - % label on each histogram bar
+      - cumulative % curve with labels
+    """
+
+    # Clean / clip
+    lag = lag_series.dropna().astype(int)
+    lag_clipped = lag.clip(lower=x_min, upper=x_max)
+
+    # Integer bins
+    bins = np.arange(x_min - 0.5, x_max + 1.5, 1)
+    counts, edges = np.histogram(lag_clipped, bins=bins)
+    centers = np.arange(x_min, x_max + 1)
+
+    # Cumulative %
+    cum_pct = np.cumsum(counts) / counts.sum() * 100
+    # Per-bin %
+    bin_pct = counts / counts.sum() * 100
+
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Histogram bars
+    bars = ax1.bar(
+        centers,
+        counts,
+        width=0.8,
+        edgecolor="black",
+        linewidth=0.5,
+        alpha=0.7,
+    )
+
+    ax1.set_xlabel("Days since actual discharge (lag)")
+    ax1.set_ylabel("Number of cases")
+    ax1.set_title(title)
+    ax1.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax1.set_xticks(np.arange(x_min, x_max + 1))
+
+    # ==== NEW: % LABELS ON TOP OF EACH BAR ====
+    for x, h, p in zip(centers, counts, bin_pct):
+        if h == 0:
+            continue  # skip empty bins
+        ax1.text(
+            x,
+            h,
+            f"{p:.0f}%",        # e.g., 24%
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+
+    # Cumulative % line
+    ax2 = ax1.twinx()
+    ax2.plot(
+        centers,
+        cum_pct,
+        marker="o",
+        linewidth=2,
+    )
+    ax2.set_ylabel("Cumulative % of cases")
+    ax2.set_ylim(0, 105)
+
+    # Labels on cumulative line
+    for x, y in zip(centers, cum_pct):
+        ax2.text(
+            x,
+            y + 1,
+            f"{int(y)}%",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+
+    plt.tight_layout()
+    plt.show()
+    
+    
+plot_lag_hist_pretty(
+    lag_pred,
+    "Predicted Discharge Scoring Lag vs Actual Discharge"
+)
+
+
+
+
+
+
+
+
+
 Medicare RAP Timing Proposal — Slides + Extra Talking Points (Text Version)
 
 --------------------------------------------------
