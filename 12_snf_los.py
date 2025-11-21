@@ -1,3 +1,28 @@
+Slide 4 – Proposed Change & Pilot Plan
+
+Title:
+
+Pilot LOS-Anchored RAP Scoring for Medicare
+
+Bullets:
+	•	Proposed change
+	•	Anchor Medicare RAP identification to predicted discharge date (0-day shift).
+	•	When actual discharge date arrives earlier in auth data, use that instead of prediction.
+	•	No change to RAP risk scores or thresholds – only the timing of first identification.
+	•	Expected impact
+	•	Increase first scores in the 0–4 day post-discharge window from 28% → 57%.
+	•	Reduce inpatient/too-early scoring from 69% → 41% and on/before admit from 24% → 6%.
+	•	Maintain capture within 4 days of discharge at ~98%.
+	•	Pilot & measure
+	•	Run a time-boxed pilot for Medicare RAP.
+	•	Track: % in 0–4 days, engagement/UTR, CM feedback on workload.
+	•	Use results to decide on scaling and whether to extend to other LOBs.
+
+
+
+
+
+
 import pandas as pd
 
 # (optional) tag them if not already tagged
