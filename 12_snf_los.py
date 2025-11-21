@@ -1,3 +1,17 @@
+Over the course of 2025, I continued to strengthen the Readmission Avoidance Program analytics foundation while improving how RAP models are monitored and operationalized. In the first half of the year, I led the development of Medicare RAP model monitoring by partnering with DE to productionize the RAP model-metrics collection DAG and stand up core dashboards in near real time. I facilitated multiple model workgroup sessions with Clinical DS and DE to standardize key monitoring metrics, curated the code base for those metrics, and laid the groundwork for intelligent monitoring by defining checks on score distributions, feature stability, and model performance. Building on this, in the second half of the year I focused on optimizing when members are identified for RAP by designing a LOS-based predicted discharge approach and refining discharge-date/identification logic. This work helps shift referrals from “too-early” inpatient cases toward the early post-discharge window so that CM receives cases at a more actionable time, improving referral quality and workflow.
+
+In parallel, I supported high-impact adhoc and evaluation work across programs. I contributed to the SNF Length of Stay analysis and related post-acute work, helping to interpret results and highlight implications for how SNF and acute programs complement each other. I also partnered with Clinical and Product teams on the Great Lakes ER Diversion Evaluation study and follow-up action items, translating analytical findings into clear recommendations for program refinement. On the innovation side, I mentored a summer intern on RAP model enhancement using clinical notes and GenAI/LLM techniques, guiding her through problem framing, feature engineering, and model evaluation while ensuring alignment with enterprise goals. I additionally collaborated with DE on evolving the RAP monitoring work into a broader MLOps framework, including discussions on standard pipelines and scheduling monitoring jobs in the cloud environment. Overall, I focused on delivering reliable analytics products, improving operational timeliness and usability of RAP outputs for CM, and fostering strong collaboration across clinical, product, SHJ, and engineering partners.
+
+
+
+
+
+
+
+
+
+
+
 Readmission Avoidance Program (RAP) Initiatives
 
 RAP Scoring Timing Optimization – LOS-Based Predicted Discharge
