@@ -1,4 +1,132 @@
 import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+# ======================
+# 1) Train / test split
+# ======================
+train_df, test_df = train_test_split(df2, test_size=0.3, random_state=42)
+
+# Global median LOS from TRAIN only (last fallback)
+global_median_los = train_df['tum_act_los_day_cnt'].median()
+
+# ============================================
+# 2) Build LOS stats FROM TRAIN DATA ONLY
+# ============================================
+
+# a) By diagnosis group
+los_stats_grp = (
+    train_df
+      .groupby('icd9_dx_group_nbr')['tum_act_los_day_cnt']
+      .agg(['mean', 'median'])
+      .reset_index()
+)
+los_stats_grp.columns = ['icd9_dx_group_nbr', 'avg_los_grp', 'median_los_grp']
+
+# b) By diagnosis category
+los_stats_ctg = (
+    train_df
+      .groupby('icd9_dx_ctg_cd')['tum_act_los_day_cnt']
+      .agg(['mean', 'median'])
+      .reset_index()
+)
+los_stats_ctg.columns = ['icd9_dx_ctg_cd', 'avg_los_ctg', 'median_los_ctg']
+
+# c) By diag + service type + admission status
+los_stats_all = (
+    train_df
+      .groupby(['icd9_dx_group_nbr', 'tum_stay_srv_type_cd', 'SAAdmissionStatusType'])['tum_act_los_day_cnt']
+      .agg(['mean', 'median'])
+      .reset_index()
+)
+los_stats_all.columns = [
+    'icd9_dx_group_nbr', 'tum_stay_srv_type_cd', 'SAAdmissionStatusType',
+    'avg_los_all', 'median_los_all'
+]
+
+# ============================================
+# 3) Merge stats into train & test
+# ============================================
+
+def add_los_features(df):
+    df = df.copy()
+    df = df.merge(los_stats_grp, on='icd9_dx_group_nbr', how='left')
+    df = df.merge(los_stats_ctg, on='icd9_dx_ctg_cd', how='left')
+    df = df.merge(
+        los_stats_all,
+        on=['icd9_dx_group_nbr', 'tum_stay_srv_type_cd', 'SAAdmissionStatusType'],
+        how='left'
+    )
+    return df
+
+train_feat = add_los_features(train_df)
+test_feat  = add_los_features(test_df)
+
+# ============================================
+# 4) Backfill logic for predicted LOS
+#     median_los_all -> median_los_grp -> median_los_ctg -> global median
+# ============================================
+
+def build_rule_based_pred(df):
+    df = df.copy()
+    # start with the most granular median
+    pred = df['median_los_all'].copy()
+
+    # record where each fallback kicks in (for diagnostics)
+    missing_all = pred.isna()                            # no all-level median
+    pred[missing_all] = df.loc[missing_all, 'median_los_grp']
+
+    missing_grp = pred.isna()                            # still NaN after grp
+    pred[missing_grp] = df.loc[missing_grp, 'median_los_ctg']
+
+    missing_ctg = pred.isna()                            # still NaN after ctg
+    pred[missing_ctg] = global_median_los                # final fallback
+
+    df['pred_los_rule'] = pred
+    df['_missing_all'] = missing_all
+    df['_missing_grp'] = missing_grp
+    df['_missing_ctg'] = missing_ctg
+    return df
+
+train_feat = build_rule_based_pred(train_feat)
+test_feat  = build_rule_based_pred(test_feat)
+
+# ============================================
+# 5) Check if backfilling was used (TEST ONLY)
+# ============================================
+
+print("=== Backfill usage on TEST set ===")
+n_test = len(test_feat)
+
+n_missing_all = test_feat['_missing_all'].sum()
+n_missing_grp = test_feat['_missing_grp'].sum()
+n_missing_ctg = test_feat['_missing_ctg'].sum()
+
+print(f"Rows with NO median_los_all (needed grp/ctg/global fallback): {n_missing_all} "
+      f"({n_missing_all / n_test:.2%})")
+print(f"Rows still missing after grp fallback (needed ctg/global):   {n_missing_grp} "
+      f"({n_missing_grp / n_test:.2%})")
+print(f"Rows still missing after ctg fallback (used global median):  {n_missing_ctg} "
+      f"({n_missing_ctg / n_test:.2%})")
+
+# You can also see whether any backfilling happened at all:
+used_any_backfill = n_missing_all > 0
+print(f"\nDid we use any backfilling on test? {'YES' if used_any_backfill else 'NO'}")
+
+# ============================================
+# 6) Optional: evaluate rule-based predictor on TEST
+# ============================================
+y_test = test_feat['tum_act_los_day_cnt']
+mae = mean_absolute_error(y_test, test_feat['pred_los_rule'])
+mse = mean_squared_error(y_test, test_feat['pred_los_rule'])
+print(f"\nRule-based LOS predictor (with backfill) on TEST: MAE={mae:.4f}, MSE={mse:.4f}")
+
+
+
+
+
+import numpy as np
 import matplotlib.pyplot as plt
 
 def plot_lag_hist_pretty(lag_series, title, x_min=-10, x_max=10):
