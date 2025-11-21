@@ -1,3 +1,9 @@
+Demonstrated Put People First by designing RAP timing and monitoring changes around care manager workflow and member reachability, so referrals arrive when outreach is more meaningful. Rose to the Challenge by taking ownership of RAP identification and SHJ issues, investigating root causes and proposing practical, data-driven fixes. Joined Forces with Clinical DS, Product, SHJ, and DE partners on RAP monitoring, SNF LOS, and ER Diversion work, sharing interim results and incorporating feedback so solutions worked across teams. Created Simplicity by standardizing key metrics and using transparent, rule-based logic so reports and dashboards are easier for stakeholders to understand and trust.
+
+
+
+
+
 Great Lakes ER Diversion Evaluation – Helped design the study/control cohorts and led analytic methods (overlap weighting, matching) to balance groups and get cleaner impact estimates. Added key context flags (SDOH, VBC/non-VBC, PCP attribution, rural/urban) and translated results and feedback into clear recommendations for refining the ER Diversion strategy.
 
 
