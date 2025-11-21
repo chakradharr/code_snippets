@@ -1,3 +1,8 @@
+Great Lakes ER Diversion Evaluation – Helped design the study/control cohorts and led analytic methods (overlap weighting, matching) to balance groups and get cleaner impact estimates. Added key context flags (SDOH, VBC/non-VBC, PCP attribution, rural/urban) and translated results and feedback into clear recommendations for refining the ER Diversion strategy.
+
+
+
+
 
 Over the course of 2025, I continued to strengthen the Readmission Avoidance Program analytics foundation while improving how RAP models are monitored and operationalized. In the first half of the year, I led the development of Medicare RAP model monitoring by partnering with DE to productionize the RAP model-metrics collection DAG and stand up core dashboards in near real time. I facilitated multiple model workgroup sessions with Clinical DS and DE to standardize key monitoring metrics, curated the code base for those metrics, and laid the groundwork for intelligent monitoring by defining checks on score distributions, feature quality, data drift, and model performance. During the second half of the year, I focused on optimizing when members are identified for RAP by designing a LOS-based predicted discharge approach and refining discharge-date/identification logic. This work helps shift referrals from “early” inpatient cases toward the early post-discharge window, when members are more reachable, so that CM receives cases at a more actionable time, improving CM workflow and increasing CM efficiency and member engagement, while simultaneously reducing low-yield outreach and UTR rates.
 
