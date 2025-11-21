@@ -1,62 +1,97 @@
+Medicare RAP Timing Proposal — Slides + Extra Talking Points (Text Version)
+
+--------------------------------------------------
 Slide 1: Current RAP Timing for Medicare Inpatient (IP)
+--------------------------------------------------
+
 Main Points:
 • RAP currently scores Medicare inpatient members as soon as an authorization is received.
 • In the 2025 Medicare sample:
-• 69% of identifications occur before the discharge date.
-• 28% occur in the 0–4 days post-discharge window.
-• About 2% occur 5 or more days after discharge.
+  - 69% of identifications occur before the discharge date.
+  - 28% occur in the 0–4 days post-discharge window.
+  - About 2% occur 5 or more days after discharge.
+
 Extra Talking Points:
 • Highlight that these are descriptive statistics, not a judgment on the current process.
 • Note that the 0–4 day post-discharge window is generally a more actionable period for outreach.
 • Mention that the purpose of the work is to understand timing patterns and explore improvements.
+
+--------------------------------------------------
 Slide 2: Using Predicted Discharge Date to Shift RAP Timing
+--------------------------------------------------
+
 Main Points:
 • We simulated using a simple LOS-based predicted discharge date instead of scoring at authorization.
 • Comparison of timing of first RAP identification:
-• Current: 69% before discharge, 28% in 0–4 days post-discharge, ~2% at 5+ days.
-• Proposed: 41% before discharge, 57% in 0–4 days post-discharge, ~2–3% at 5+ days.
-• Under the proposed approach, more members are first identified in the immediate post-discharge window, w
+  - Current: 69% before discharge, 28% in 0–4 days post-discharge, ~2% at 5+ days.
+  - Proposed: 41% before discharge, 57% in 0–4 days post-discharge, ~2–3% at 5+ days.
+• Under the proposed approach, more members are first identified in the immediate post-discharge window, where outreach can be more impactful.
+
 Extra Talking Points:
 • Clarify that the simulation used actual historical data, not assumptions.
-• Emphasize that late identifications remain relatively stable while timing shifts toward the post-discharge per
+• Emphasize that late identifications remain relatively stable while timing shifts toward the post-discharge period.
 • Note that this is an adjustment to timing, not a change in who is eligible for RAP.
-Slide 3: Cumulative Capture of RAP Identifications by Days Since Disch
+
+--------------------------------------------------
+Slide 3: Cumulative Capture of RAP Identifications by Days Since Discharge
+--------------------------------------------------
+
 Main Points:
 • We examined cumulative capture of first RAP identification by days since discharge.
-• For both the current and proposed approaches, approximately 97–98% of members are captured by 4 days
-• The proposed approach shifts more first identifications into the 0–4 day post-discharge window rather than
+• For both the current and proposed approaches, approximately 97–98% of members are captured by 4 days post-discharge.
+• The proposed approach shifts more first identifications into the 0–4 day post-discharge window rather than before discharge.
+
 Extra Talking Points:
 • Use this slide to reassure stakeholders that overall coverage remains similar across approaches.
 • Explain that the key difference is the distribution of when first contact becomes possible.
 • You can reference the shaded 0–4 day window on the chart as the key opportunity zone.
+
+--------------------------------------------------
 Slide 4: Member Journey and Recommended Change for Medicare RAP
+--------------------------------------------------
+
 Main Points:
 • Conceptually, the current process tends to identify members closer to the admission portion of the stay.
-• The proposed process shifts identification closer to discharge and the first few days after members return h
+• The proposed process shifts identification closer to discharge and the first few days after members return home.
 • Recommendation for Medicare RAP:
-• Use a predicted discharge date (LOS-based) as the anchor for RAP identification timing.
-• When the actual discharge date is available earlier in the auth system, use that date instead.
-• Start with a pilot and monitor engagement, UTR, and the share of identifications in the 0–4 day post-discha
-Extra Talking Points:
-• Narrate a simple patient story to illustrate the difference between being contacted while inpatient versus sho
-• Note that the recommendation is to pilot and measure impact, not to immediately enforce a system-wide ch
-• Highlight alignment with CM workflow: more contacts aligned with discharge and early recovery.
-Slide 5: How We Estimate Discharge Date Using Rule-Based LOS
-Main Points:
-• We use a simple, transparent, rule-based approach to estimate discharge timing, not a black-box ML mode
-• Historical development data: 2024 Medicare inpatient stays used to derive LOS patterns; 2025 data used to
-• Grouping dimensions for LOS estimation: diagnosis group, stay service type (e.g., Medical / Surgical), and
-• For each (diagnosis group, stay service type, admission status) combination, we compute median LOS as t
-• We also evaluated average LOS and simpler diagnosis-only groupings for comparison.
-• Prediction rule used in the simulation: Predicted LOS = median LOS for the matching group; Predicted disc
-• Performance on 2025 Medicare data: Mean Absolute Error (MAE) ≈ 2.2 days; enhanced grouping improves
-• Operational takeaway: this level of accuracy is sufficient to move RAP timing closer to discharge while main
-• The approach is easy to explain to clinicians, auditable, and straightforward to maintain.
-Extra Talking Points:
-• If asked whether this is 'AI,' clarify that it is a rule-based approach derived from historical patterns.
-• Reassure stakeholders that the method is interpretable and can be adjusted if clinical feedback suggests re
-• Mention that if needed in the future, more advanced models could be explored, but the current rule-based s
+  - Use a predicted discharge date (LOS-based) as the anchor for RAP identification timing.
+  - When the actual discharge date is available earlier in the auth system, use that date instead.
+  - Start with a pilot and monitor engagement, UTR, and the share of identifications in the 0–4 day post-discharge window.
 
+Extra Talking Points:
+• Narrate a simple patient story to illustrate the difference between being contacted while inpatient versus shortly after returning home.
+• Note that the recommendation is to pilot and measure impact, not to immediately enforce a system-wide change.
+• Highlight alignment with CM workflow: more contacts aligned with discharge and early recovery.
+
+--------------------------------------------------
+Slide 5: How We Estimate Discharge Date Using Rule-Based LOS
+--------------------------------------------------
+
+Main Points:
+• We use a simple, transparent, rule-based approach to estimate discharge timing, not a black-box ML model.
+• Historical development data:
+  - 2024 Medicare inpatient stays used to derive LOS patterns.
+  - 2025 data used to evaluate accuracy.
+• Grouping dimensions for LOS estimation:
+  - Diagnosis group.
+  - Stay service type (e.g., Medical / Surgical).
+  - Admission status (e.g., Emergency / Elective / Urgent).
+• For each (diagnosis group, stay service type, admission status) combination, we compute median LOS as the primary predictor.
+• We also evaluated average LOS and simpler diagnosis-only groupings for comparison.
+• Prediction rule used in the simulation:
+  - Predicted LOS = median LOS for the matching group.
+  - Predicted discharge date = admit date + predicted LOS (in days).
+• Performance on 2025 Medicare data:
+  - Mean Absolute Error (MAE) ≈ 2.2 days.
+  - Enhanced grouping improves MAE versus diagnosis-only.
+• Operational takeaway:
+  - This level of accuracy is sufficient to move RAP timing closer to discharge while maintaining coverage.
+  - The approach is easy to explain to clinicians, auditable, and straightforward to maintain.
+
+Extra Talking Points:
+• If asked whether this is “AI,” clarify that it is a rule-based approach derived from historical patterns.
+• Reassure stakeholders that the method is interpretable and can be adjusted if clinical feedback suggests refinements.
+• Mention that if needed in the future, more advanced models could be explored, but the current rule-based solution already delivers meaningful timing improvements.
 
 
 
