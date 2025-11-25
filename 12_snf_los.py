@@ -1,3 +1,223 @@
+import pandas as pd
+import numpy as np
+
+# ============================================================
+# 0. EXPECTED INPUTS
+# ============================================================
+# hist_df: historical inpatient stays used to learn LOS patterns
+# auth_df: current authorizations where we want to predict LOS / discharge
+#
+# Required columns in hist_df:
+#   'icd9_dx_group_nbr'
+#   'icd9_dx_ctg_cd'
+#   'tum_stay_srv_type_cd'
+#   'SAAdmissionStatusType'
+#   'tum_act_los_day_cnt'        # actual LOS in days (numeric)
+#
+# Required columns in auth_df:
+#   'authorization_id'
+#   'tum_actual_admit_dt'        # admit date (datetime or string)
+#   'tum_actual_dischg_dt'       # actual discharge date, may be NULL (datetime or string)
+#   'icd9_dx_group_nbr'
+#   'icd9_dx_ctg_cd'
+#   'tum_stay_srv_type_cd'
+#   'SAAdmissionStatusType'
+#
+# NOTE: you can subset hist_df to only 2024 Medicare, etc., BEFORE calling the functions below.
+
+
+# ============================================================
+# 1. UTILITIES – BUILD LOS REFERENCE TABLES FROM HISTORICAL DATA
+# ============================================================
+
+def build_los_reference_tables(hist_df: pd.DataFrame):
+    """
+    Build LOS reference tables (median LOS) from historical IP stays.
+    Returns:
+      los_by_full_combo, los_by_diag_group, los_by_diag_ctg, global_median_los
+    """
+    # Ensure LOS is numeric
+    df = hist_df.copy()
+    df['tum_act_los_day_cnt'] = pd.to_numeric(df['tum_act_los_day_cnt'], errors='coerce')
+
+    # Drop rows with missing LOS
+    df = df[df['tum_act_los_day_cnt'].notna()]
+
+    # A) Full combo: (diagnosis group, stay service type, admission status)
+    los_by_full_combo = (
+        df
+        .groupby(['icd9_dx_group_nbr', 'tum_stay_srv_type_cd', 'SAAdmissionStatusType'])['tum_act_los_day_cnt']
+        .median()
+        .reset_index()
+        .rename(columns={'tum_act_los_day_cnt': 'median_los_all'})
+    )
+
+    # B) Diagnosis group level
+    los_by_diag_group = (
+        df
+        .groupby('icd9_dx_group_nbr')['tum_act_los_day_cnt']
+        .median()
+        .reset_index()
+        .rename(columns={'tum_act_los_day_cnt': 'median_los_grp'})
+    )
+
+    # C) Diagnosis category level
+    los_by_diag_ctg = (
+        df
+        .groupby('icd9_dx_ctg_cd')['tum_act_los_day_cnt']
+        .median()
+        .reset_index()
+        .rename(columns={'tum_act_los_day_cnt': 'median_los_ctg'})
+    )
+
+    # D) Global median LOS (final fallback)
+    global_median_los = df['tum_act_los_day_cnt'].median()
+
+    print(f"[INFO] Global median LOS (for final fallback): {global_median_los:.2f} days")
+
+    return los_by_full_combo, los_by_diag_group, los_by_diag_ctg, global_median_los
+
+
+# ============================================================
+# 2. APPLY LOS TABLES TO AUTHORIZATIONS (PREDICTED LOS & DISCHARGE)
+# ============================================================
+
+def apply_los_prediction_to_auth(
+    auth_df: pd.DataFrame,
+    los_by_full_combo: pd.DataFrame,
+    los_by_diag_group: pd.DataFrame,
+    los_by_diag_ctg: pd.DataFrame,
+    global_median_los: float
+) -> pd.DataFrame:
+    """
+    Merge LOS reference tables into auth_df and compute:
+      - predicted_los_days (with fallback)
+      - predicted_discharge_dt
+      - effective_discharge_dt (actual if available, else predicted)
+
+    Returns a new DataFrame with these additional columns.
+    """
+    df = auth_df.copy()
+
+    # Ensure dates are datetime
+    df['tum_actual_admit_dt'] = pd.to_datetime(df['tum_actual_admit_dt'], errors='coerce')
+    if 'tum_actual_dischg_dt' in df.columns:
+        df['tum_actual_dischg_dt'] = pd.to_datetime(df['tum_actual_dischg_dt'], errors='coerce')
+    else:
+        df['tum_actual_dischg_dt'] = pd.NaT
+
+    # Merge full combo medians
+    df = df.merge(
+        los_by_full_combo,
+        on=['icd9_dx_group_nbr', 'tum_stay_srv_type_cd', 'SAAdmissionStatusType'],
+        how='left'
+    )
+
+    # Merge diagnosis group medians
+    df = df.merge(
+        los_by_diag_group,
+        on='icd9_dx_group_nbr',
+        how='left'
+    )
+
+    # Merge diagnosis category medians
+    df = df.merge(
+        los_by_diag_ctg,
+        on='icd9_dx_ctg_cd',
+        how='left'
+    )
+
+    # ------------------------------
+    # Fallback chain for LOS:
+    # median_los_all -> median_los_grp -> median_los_ctg -> global_median_los
+    # ------------------------------
+    pred_los = df['median_los_all'].copy()
+
+    missing_all = pred_los.isna()
+    pred_los[missing_all] = df.loc[missing_all, 'median_los_grp']
+
+    missing_grp = pred_los.isna()
+    pred_los[missing_grp] = df.loc[missing_grp, 'median_los_ctg']
+
+    missing_ctg = pred_los.isna()
+    pred_los[missing_ctg] = global_median_los
+
+    df['predicted_los_days'] = pred_los
+
+    # Diagnostics on fallback usage (optional)
+    n_total = len(df)
+    print("=== Fallback usage on auth_df ===")
+    print(f"Rows without full combo (used grp/ctg/global): {missing_all.sum()} "
+          f"({missing_all.sum() / n_total:.2%})")
+    print(f"Rows still missing after grp (used ctg/global): {missing_grp.sum()} "
+          f"({missing_grp.sum() / n_total:.2%})")
+    print(f"Rows still missing after ctg (used global): {missing_ctg.sum()} "
+          f"({missing_ctg.sum() / n_total:.2%})")
+
+    # ------------------------------
+    # Predicted discharge date
+    # ------------------------------
+    df['predicted_discharge_dt'] = df['tum_actual_admit_dt'] + pd.to_timedelta(
+        df['predicted_los_days'].astype(float),
+        unit='D'
+    )
+
+    # ------------------------------
+    # Effective discharge date for scoring:
+    #   If actual discharge exists -> use actual
+    #   Else -> use predicted
+    # ------------------------------
+    df['effective_discharge_dt'] = df['tum_actual_dischg_dt'].where(
+        df['tum_actual_dischg_dt'].notna(),
+        df['predicted_discharge_dt']
+    )
+
+    return df
+
+
+# ============================================================
+# 3. END-TO-END EXAMPLE USAGE
+# ============================================================
+
+# Example:
+# hist_df = ...  # load your historical IP data (e.g., 2024 Medicare)
+# auth_df = ...  # load your current auth data to be scored
+
+# 1) Build LOS reference tables from historical data
+# los_full, los_grp, los_ctg, global_med = build_los_reference_tables(hist_df)
+
+# 2) Apply LOS prediction & effective discharge date to authorizations
+# auth_with_pred = apply_los_prediction_to_auth(auth_df, los_full, los_grp, los_ctg, global_med)
+
+# 3) auth_with_pred now contains:
+#    - 'predicted_los_days'
+#    - 'predicted_discharge_dt'
+#    - 'effective_discharge_dt' (actual if available, else predicted)
+#
+# You can then plug 'effective_discharge_dt' into your RAP pipeline logic
+# to decide when to release cases for scoring.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Demonstrated Put People First by designing RAP timing and monitoring changes around care manager workflow and member reachability, so referrals arrive when outreach is more meaningful. Rose to the Challenge by taking ownership of RAP identification and SHJ issues, investigating root causes and proposing practical, data-driven fixes. Joined Forces with Clinical DS, Product, SHJ, and DE partners on RAP monitoring, SNF LOS, and ER Diversion work, sharing interim results and incorporating feedback so solutions worked across teams. Created Simplicity by standardizing key metrics and using transparent, rule-based logic so reports and dashboards are easier for stakeholders to understand and trust.
 
 
