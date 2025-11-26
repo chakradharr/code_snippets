@@ -1,3 +1,298 @@
+-- full combo: diagnosis group + service type + admission status
+`anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_FULL_COMBO`
+  (icd9_dx_group_nbr, tum_stay_srv_type_cd, SAAdmissionStatusType, median_los_all)
+
+-- diagnosis-group only
+`anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GRP`
+  (icd9_dx_group_nbr, median_los_grp)
+
+-- diagnosis-category only
+`anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_CTG`
+  (icd9_dx_ctg_cd, median_los_ctg)
+
+-- global median (single row)
+`anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GLOBAL`
+  (global_median_los)
+
+
+CREATE OR REPLACE TABLE
+  `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_03_apply_los_prediction`
+AS
+WITH global_los AS (
+  SELECT global_median_los
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GLOBAL`
+),
+
+auth_base AS (
+  SELECT
+    pme_reference_no,
+    SAAdmissionStatusType,
+    aServiceLineServiceTypeCd,
+    DiagnosisCode,
+    admit_dt,
+    discharge_dt,
+    icd9_dx_group_nbr,
+    icd9_dx_ctg_cd
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_02_get_diagnosis_category_and_group`
+)
+
+SELECT
+  ab.pme_reference_no,
+  ab.SAAdmissionStatusType,
+  ab.aServiceLineServiceTypeCd AS tum_stay_srv_type_cd,
+  ab.DiagnosisCode,
+  ab.icd9_dx_group_nbr,
+  ab.icd9_dx_ctg_cd,
+  ab.admit_dt,
+  ab.discharge_dt,
+
+  -- raw medians from each level
+  f.median_los_all,
+  g.median_los_grp,
+  c.median_los_ctg,
+  gl.global_median_los,
+
+  -- final predicted LOS (days) using fallback chain:
+  -- full combo -> group -> category -> global
+  COALESCE(
+    f.median_los_all,
+    g.median_los_grp,
+    c.median_los_ctg,
+    gl.global_median_los
+  ) AS predicted_los_days,
+
+  -- predicted discharge date from admit date
+  DATE_ADD(
+    ab.admit_dt,
+    INTERVAL COALESCE(
+      f.median_los_all,
+      g.median_los_grp,
+      c.median_los_ctg,
+      gl.global_median_los
+    ) DAY
+  ) AS predicted_discharge_dt,
+
+  -- **effective discharge date for scoring**:
+  -- use actual discharge if populated, otherwise predicted
+  COALESCE(
+    ab.discharge_dt,
+    DATE_ADD(
+      ab.admit_dt,
+      INTERVAL COALESCE(
+        f.median_los_all,
+        g.median_los_grp,
+        c.median_los_ctg,
+        gl.global_median_los
+      ) DAY
+    )
+  ) AS effective_discharge_dt
+
+FROM auth_base ab
+LEFT JOIN `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_FULL_COMBO` f
+  ON  ab.icd9_dx_group_nbr     = f.icd9_dx_group_nbr
+  AND ab.aServiceLineServiceTypeCd = f.tum_stay_srv_type_cd
+  AND ab.SAAdmissionStatusType = f.SAAdmissionStatusType
+LEFT JOIN `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GRP` g
+  ON  ab.icd9_dx_group_nbr     = g.icd9_dx_group_nbr
+LEFT JOIN `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_CTG` c
+  ON  ab.icd9_dx_ctg_cd        = c.icd9_dx_ctg_cd
+CROSS JOIN global_los gl;
+
+
+-- Median LOS by diagnosis group + admission status (no service type)
+CREATE OR REPLACE TABLE
+  `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GRP_ADMSTATUS` AS
+WITH los_train_base AS (
+  SELECT
+    icd9_dx_group_nbr,
+    icd9_dx_ctg_cd,
+    SAAdmissionStatusType,
+    tum_act_los_day_cnt
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_IP_LOS_HIST`   -- your curated hist table
+  WHERE include_in_los_training = TRUE
+    AND lob = 'Medicare'
+    AND train_year = 2024
+    AND tum_act_los_day_cnt IS NOT NULL
+)
+SELECT
+  icd9_dx_group_nbr,
+  SAAdmissionStatusType,
+  CAST(APPROX_QUANTILES(tum_act_los_day_cnt, 100)[OFFSET(50)] AS INT64) AS median_los_grp_adm
+FROM los_train_base
+GROUP BY 1, 2;
+
+-- Median LOS by diagnosis group
+CREATE OR REPLACE TABLE
+  `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GRP` AS
+WITH los_train_base AS (
+  SELECT
+    icd9_dx_group_nbr,
+    tum_act_los_day_cnt
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_IP_LOS_HIST`
+  WHERE include_in_los_training = TRUE
+    AND lob = 'Medicare'
+    AND train_year = 2024
+    AND tum_act_los_day_cnt IS NOT NULL
+)
+SELECT
+  icd9_dx_group_nbr,
+  CAST(APPROX_QUANTILES(tum_act_los_day_cnt, 100)[OFFSET(50)] AS INT64) AS median_los_grp
+FROM los_train_base
+GROUP BY 1;
+
+
+-- Median LOS by diagnosis category
+CREATE OR REPLACE TABLE
+  `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_CTG` AS
+WITH los_train_base AS (
+  SELECT
+    icd9_dx_ctg_cd,
+    tum_act_los_day_cnt
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_IP_LOS_HIST`
+  WHERE include_in_los_training = TRUE
+    AND lob = 'Medicare'
+    AND train_year = 2024
+    AND tum_act_los_day_cnt IS NOT NULL
+)
+SELECT
+  icd9_dx_ctg_cd,
+  CAST(APPROX_QUANTILES(tum_act_los_day_cnt, 100)[OFFSET(50)] AS INT64) AS median_los_ctg
+FROM los_train_base
+GROUP BY 1;
+
+
+-- Global median LOS
+CREATE OR REPLACE TABLE
+  `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GLOBAL` AS
+WITH los_train_base AS (
+  SELECT
+    tum_act_los_day_cnt
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_IP_LOS_HIST`
+  WHERE include_in_los_training = TRUE
+    AND lob = 'Medicare'
+    AND train_year = 2024
+    AND tum_act_los_day_cnt IS NOT NULL
+)
+SELECT
+  CAST(APPROX_QUANTILES(tum_act_los_day_cnt, 100)[OFFSET(50)] AS INT64) AS global_median_los;
+
+
+
+CREATE OR REPLACE TABLE
+  `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_03_apply_los_prediction` AS
+WITH global_los AS (
+  SELECT global_median_los
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GLOBAL`
+),
+
+auth_base AS (
+  SELECT
+    pme_reference_no,
+    SAAdmissionStatusType,
+    aServiceLineServiceTypeCd,     -- kept for reference, not used in LOS join
+    DiagnosisCode,
+    admit_dt,
+    discharge_dt,
+    icd9_dx_group_nbr,
+    icd9_dx_ctg_cd
+  FROM `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_02_get_diagnosis_category_and_group`
+)
+
+SELECT
+  ab.pme_reference_no,
+  ab.SAAdmissionStatusType,
+  ab.aServiceLineServiceTypeCd,
+  ab.DiagnosisCode,
+  ab.icd9_dx_group_nbr,
+  ab.icd9_dx_ctg_cd,
+  ab.admit_dt,
+  ab.discharge_dt,
+
+  -- medians from each level
+  f.median_los_grp_adm,
+  g.median_los_grp,
+  c.median_los_ctg,
+  gl.global_median_los,
+
+  -- final predicted LOS (days) with fallback:
+  -- group+admission_status → group → category → global
+  COALESCE(
+    f.median_los_grp_adm,
+    g.median_los_grp,
+    c.median_los_ctg,
+    gl.global_median_los
+  ) AS predicted_los_days,
+
+  -- predicted discharge date from admit date
+  DATE_ADD(
+    ab.admit_dt,
+    INTERVAL COALESCE(
+      f.median_los_grp_adm,
+      g.median_los_grp,
+      c.median_los_ctg,
+      gl.global_median_los
+    ) DAY
+  ) AS predicted_discharge_dt,
+
+  -- EFFECTIVE discharge date for scoring:
+  --   actual if available, else predicted
+  COALESCE(
+    ab.discharge_dt,
+    DATE_ADD(
+      ab.admit_dt,
+      INTERVAL COALESCE(
+        f.median_los_grp_adm,
+        g.median_los_grp,
+        c.median_los_ctg,
+        gl.global_median_los
+      ) DAY
+    )
+  ) AS effective_discharge_dt
+
+FROM auth_base ab
+LEFT JOIN `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GRP_ADMSTATUS` f
+  ON  ab.icd9_dx_group_nbr     = f.icd9_dx_group_nbr
+  AND ab.SAAdmissionStatusType = f.SAAdmissionStatusType
+LEFT JOIN `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_GRP` g
+  ON  ab.icd9_dx_group_nbr     = g.icd9_dx_group_nbr
+LEFT JOIN `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_CTG` c
+  ON  ab.icd9_dx_ctg_cd        = c.icd9_dx_ctg_cd
+CROSS JOIN global_los gl;
+
+
+
+The LOS rule is now:
+
+median LOS by (diagnosis group + admission status) →
+then by diagnosis group →
+then by diagnosis category →
+then global median.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import pandas as pd
 import numpy as np
 
