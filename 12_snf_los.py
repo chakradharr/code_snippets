@@ -1,3 +1,42 @@
+
+Hi [Team / Name],
+
+We wanted to give you a heads-up on an upcoming enhancement to the RAP identification logic and confirm alignment before moving forward—especially given the timing at the end of the year.
+
+What’s changing
+	•	Going forward, RAP cases will be identified based on the predicted discharge date (using historical LOS patterns), rather than identifying all cases as soon as an authorization is received.
+	•	Identification will focus on cases on or after the predicted discharge date, within the existing post-discharge window.
+
+What this means operationally
+	•	You may see a slightly lower volume of newly identified cases compared to the current process.
+	•	This is expected because:
+	•	Some cases were previously identified too early (well before discharge).
+	•	Some cases were already sent earlier in the stay and will no longer be re-surfaced.
+	•	A small subset of cases will be intentionally suppressed until they are closer to (or past) the predicted discharge date, improving timing relevance.
+
+Why we’re making this change
+	•	Improves alignment with true post-discharge RAP opportunity.
+	•	Reduces early or premature identification during inpatient stays.
+	•	Keeps missed opportunity rates unchanged while improving timing precision.
+
+Given that this is the last two weeks of December, we wanted to check:
+	•	Are you comfortable with the expected short-term volume reduction?
+	•	Do you anticipate any concerns related to year-end volume goals or reporting?
+
+Happy to walk through the details or share recent analysis if helpful. We want to make sure this change supports both clinical effectiveness and operational needs.
+
+Thanks,
+Chakradhar
+
+
+
+
+
+
+
+
+
+
 -- full combo: diagnosis group + service type + admission status
 `anbc-hcb-dev.clin_analytics_hcb_dev.DE_RAP_DSCHG_LOS_FULL_COMBO`
   (icd9_dx_group_nbr, tum_stay_srv_type_cd, SAAdmissionStatusType, median_los_all)
