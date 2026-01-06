@@ -1,3 +1,15 @@
+import numpy as np
+
+pmpm_cols = [
+    "er_pmpm_pre", "ip_pmpm_pre", "allowed_pmpm_pre", "paid_pmpm_pre",
+    "er_pmpm_post", "ip_pmpm_post", "allowed_pmpm_post", "paid_pmpm_post"
+]
+
+df[pmpm_cols] = df[pmpm_cols].replace([np.inf, -np.inf], 0).fillna(0)
+
+
+
+
 
 # BEFORE PMPM (pre-period)
 df["er_pmpm_pre"]      = df["bfr_ut_er_visits_6_mth"] / df["med_mths_pre"]
