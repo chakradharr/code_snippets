@@ -1,3 +1,18 @@
+# Step 1: High utilizers
+tdf_hi = tdf[tdf['bfr_ut_er_visits_6_mth'] > 4]
+
+# Step 2: Remove extreme outliers (global rule)
+upper = tdf_hi['bfr_ut_er_visits_6_mth'].quantile(0.99)
+lower = tdf_hi['bfr_ut_er_visits_6_mth'].quantile(0.01)
+
+tdf_final = tdf_hi[
+    (tdf_hi['bfr_ut_er_visits_6_mth'] >= lower) &
+    (tdf_hi['bfr_ut_er_visits_6_mth'] <= upper)
+]
+
+
+
+
 
 Hi [Team / Name],
 
