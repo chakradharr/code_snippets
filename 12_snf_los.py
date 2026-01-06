@@ -1,3 +1,30 @@
+# ---- FIX cobra import to use cobra-flow-gcp repo ----
+import sys
+
+# Path that contains src/cobra/...
+COBRA_SRC = "/home/jupyter/zip_files/cobra-flow-gcp-master/src"
+
+if COBRA_SRC not in sys.path:
+    sys.path.insert(0, COBRA_SRC)
+
+# Verify correct cobra is loaded
+import cobra
+print("cobra loaded from:", cobra.__file__)
+
+# Now these WILL work
+from cobra.data.check import CobraDataCheck
+from cobra.data.prep import CobraDataPrep
+from cobra.flow.subgroup import AutoEval
+# ----------------------------------------------------
+
+
+
+
+
+
+
+
+
 import sys, os, cobra
 print("cobra imported from:", cobra.__file__)
 print("cwd:", os.getcwd())
