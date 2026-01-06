@@ -1,4 +1,24 @@
-# ---- FIX cobra import to use cobra-flow-gcp repo ----
+
+# BEFORE PMPM (pre-period)
+df["er_pmpm_pre"]      = df["bfr_ut_er_visits_6_mth"] / df["med_mths_pre"]
+df["ip_pmpm_pre"]      = df["bfr_ut_ip_visits_6_mth"] / df["med_mths_pre"]
+df["allowed_pmpm_pre"] = df["bfr_allowed_amt_6_mth"] / df["med_mths_pre"]
+df["paid_pmpm_pre"]    = df["bfr_paid_amt_6_mth"] / df["med_mths_pre"]
+
+# AFTER PMPM (post-period)
+df["er_pmpm_post"]      = df["aft_ut_er_visits_6_mth"] / df["med_mths_post"]
+df["ip_pmpm_post"]      = df["aft_ut_ip_visits_6_mth"] / df["med_mths_post"]
+df["allowed_pmpm_post"] = df["aft_allowed_amt_6_mth"] / df["med_mths_post"]
+df["paid_pmpm_post"]    = df["aft_paid_amt_6_mth"] / df["med_mths_post"]
+
+
+
+
+
+
+
+
+m# ---- FIX cobra import to use cobra-flow-gcp repo ----
 import sys
 
 # Path that contains src/cobra/...
