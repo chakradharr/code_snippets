@@ -1,3 +1,19 @@
+import sys, os, cobra
+print("cobra imported from:", cobra.__file__)
+print("cwd:", os.getcwd())
+
+# show if local cobra exists relative to cwd
+print("local cobra folder exists:", os.path.isdir("cobra"))
+print("local cobra/data/check.py exists:", os.path.exists("cobra/data/check.py"))
+
+print("top sys.path entries:")
+print("\n".join(sys.path[:5]))
+
+
+
+
+
+
 # Step 1: High utilizers
 tdf_hi = tdf[tdf['bfr_ut_er_visits_6_mth'] > 4]
 
