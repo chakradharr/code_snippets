@@ -1,3 +1,20 @@
+Hi Amanda,
+
+Thank you for the update.
+
+I have completed the electronic questionnaire and uploaded all the requested documents to my VisaTrax profile. Please let me know if anything additional is required from my end to proceed.
+
+I look forward to moving ahead with the filing of the I-140 petition at your earliest convenience.
+
+Thank you for your support.
+
+Best regards,  
+Chakradhar Reddy
+
+
+
+
+
 import numpy as np
 
 pmpm_cols = [
