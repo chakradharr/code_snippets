@@ -1,3 +1,98 @@
+Subject: PCR Follow-up: Vendor–Internal CM Overlap and PCR Denominator View
+
+Hi all,
+
+Per Yiwei’s feedback, I reviewed the PCR population focusing on (1) vendor engagement overlap with internal CM (RAP and non-RAP) and (2) targeted and engaged rates as a share of the total PCR denominator. I’ve attached slides with the summary results.
+
+Across vendors, overlap patterns with internal CM are consistent, with RAP/PCR CM accounting for most of the overlap and non-RAP CM contributing a smaller but steady share. Viewing metrics at the full PCR denominator level provides a clearer picture of overall reach and engagement.
+
+Importantly, outcomes show greater readmission reduction when Galileo engagement overlaps with internal CM compared to Galileo-only engagement. This suggests that allowing overlap may drive higher overall impact, and it may be worth revisiting the current RAP suppression approach for Galileo.
+
+Happy to discuss further.
+
+Thanks,  
+Chakradhar
+
+---
+
+If you want, I can make an even tighter 4–5 sentence version or tune it for a readout deck cover email.
+
+
+
+
+
+
+
+
+
+-- Replace project.dataset.table and your key columns as needed
+WITH base AS (
+  SELECT
+    individual_id,
+    pme_reference_no,
+
+    -- normalize (case/extra spaces)
+    LOWER(TRIM(REGEXP_REPLACE(first_program_track, r'\s+', ' '))) AS fpt_norm,
+    LOWER(TRIM(REGEXP_REPLACE(program_referral,   r'\s+', ' '))) AS pr_norm
+  FROM `project.dataset.table`
+),
+
+long AS (
+  -- stack both cols into one "feature" column
+  SELECT
+    individual_id,
+    pme_reference_no,
+    CONCAT('fpt__', REPLACE(fpt_norm, ' ', '_')) AS feature,
+    1 AS val
+  FROM base
+  WHERE fpt_norm IS NOT NULL AND fpt_norm != ''
+
+  UNION ALL
+
+  SELECT
+    individual_id,
+    pme_reference_no,
+    CONCAT('pr__', REPLACE(pr_norm, ' ', '_')) AS feature,
+    1 AS val
+  FROM base
+  WHERE pr_norm IS NOT NULL AND pr_norm != ''
+)
+
+SELECT *
+FROM long
+PIVOT (
+  MAX(val) FOR feature IN (
+    -- first_program_track (prefix fpt__)
+    'fpt__social_services',
+    'fpt__rap',
+    'fpt__behavioral_health',
+    'fpt__short_term_referral',
+    'fpt__dedicated_group_triggers',
+    'fpt__accp',
+    'fpt__medium',
+    'fpt__high',
+    'fpt__healthy_heart',
+    'fpt__low',
+
+    -- program_referral (prefix pr__)
+    'pr__admission_avoidance',
+    'pr__care_needs',
+    'pr__complex_care_needs',
+    'pr__er_predictive',
+    'pr__healthy_heart_program',
+    'pr__manual',
+    'pr__post_discharge',
+    'pr__pre_admission',
+    'pr__provider_collaboration',
+    'pr__provider_outreach',
+    'pr__risk_stratification'
+  )
+);
+
+
+
+
+
 Hi Amanda,
 
 Thank you for the update.
