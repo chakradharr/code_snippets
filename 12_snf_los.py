@@ -1,5 +1,98 @@
 import pandas as pd
 
+# =======================
+# CONFIG (edit if needed)
+# =======================
+ID = 'individual_id'          # or 'member_id'
+COHORT = 'cohort_type'
+TARG_DT = 'targeted_date'
+INDEX_DT = 'index_date'
+
+ENG_CTRL = 'ENGAGED_CONTROL'
+ENG_TRT  = 'engaged_treatment'
+TARG_TRT = 'targeted_treatment'
+
+# =======================
+# 0) (Recommended) ensure date types match
+# =======================
+for c in [TARG_DT, INDEX_DT]:
+    df[c] = pd.to_datetime(df[c]).dt.date
+
+# =======================
+# 1) Keep only engaged_control + engaged_treatment
+# =======================
+eng_eval = df[df[COHORT].isin([ENG_CTRL, ENG_TRT])].copy()
+
+# =======================
+# 2) Targeted snapshot rows (index_date == targeted_date) for targeted_treatment
+#    If you can have multiple rows per (ID, targeted_date), keep the first/last deterministically
+# =======================
+targ = df[
+    (df[COHORT].eq(TARG_TRT)) &
+    (pd.to_datetime(df[INDEX_DT]).dt.date == pd.to_datetime(df[TARG_DT]).dt.date)
+].copy()
+
+# Deduplicate targeted snapshots per (ID, targeted_date) to avoid ambiguous overwrites
+# Prefer the last row as it appears in df; if you have another tie-breaker, swap it in here.
+targ = targ.drop_duplicates([ID, TARG_DT], keep='last')
+
+# =======================
+# 3) Decide which columns are "features" to overwrite
+# =======================
+exclude = {
+    ID, 'member_id',
+    COHORT, 'treatment_grp',
+    INDEX_DT, 'index_month',
+    TARG_DT, 'engaged_date',
+    'prev_6m', 'post_6m'
+}
+feature_cols = [c for c in df.columns if c not in exclude]
+
+# =======================
+# 4) Index both frames and overwrite engaged_treatment rows IN-PLACE (no extra columns)
+# =======================
+eng_idx  = eng_eval.set_index([ID, TARG_DT])
+targ_idx = targ.set_index([ID, TARG_DT])
+
+mask = eng_idx[COHORT].eq(ENG_TRT)
+
+# only overwrite where a targeted snapshot exists
+valid_idx = eng_idx[mask].index.intersection(targ_idx.index)
+
+print("Engaged treatment rows:", int(mask.sum()))
+print("Matched targeted snapshot rows:", int(len(valid_idx)))
+print("Unmatched engaged_treatment rows (no targeted snapshot):", int(mask.sum() - len(valid_idx)))
+
+# IMPORTANT: assign without .values (keeps index alignment; avoids broadcasting error)
+eng_idx.loc[valid_idx, feature_cols] = targ_idx.loc[valid_idx, feature_cols]
+
+# =======================
+# 5) Anchor index_date to targeted_date (ITT-style anchor for windows/outcomes)
+# =======================
+eng_idx[INDEX_DT] = eng_idx.index.get_level_values(TARG_DT)
+
+# back to a normal dataframe
+eng_eval_swapped = eng_idx.reset_index()
+
+# =======================
+# 6) (Optional) quickly list unmatched members for debugging
+# =======================
+unmatched_idx = eng_idx[mask].index.difference(targ_idx.index)
+if len(unmatched_idx) > 0:
+    unmatched = pd.DataFrame(unmatched_idx.tolist(), columns=[ID, TARG_DT])
+    print("\nSample unmatched (showing up to 20):")
+    print(unmatched.head(20))
+
+# RESULT:
+# eng_eval_swapped has ENGAGED_CONTROL + engaged_treatment rows,
+# and engaged_treatment rows now carry targeted-date features + index_date=targeted_date
+
+
+
+
+
+import pandas as pd
+
 # ---- CONFIG ----
 ID = 'individual_id'      # or 'member_id'
 COHORT = 'cohort_type'
