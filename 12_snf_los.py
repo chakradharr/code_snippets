@@ -1,6 +1,111 @@
 import pandas as pd
 
 # =======================
+# CONFIG
+# =======================
+ID = 'individual_id'          # or 'member_id'
+COHORT = 'cohort_type'
+TARG_DT = 'targeted_date'
+INDEX_DT = 'index_date'
+
+ENG_CTRL = 'ENGAGED_CONTROL'
+ENG_TRT  = 'engaged_treatment'
+TARG_TRT = 'targeted_treatment'
+
+# =======================
+# 0) Normalize dates (avoid timestamp mismatch)
+# =======================
+for c in [TARG_DT, INDEX_DT]:
+    df[c] = pd.to_datetime(df[c]).dt.date
+
+# =======================
+# 1) Analysis pop: engaged_control + engaged_treatment
+#    IMPORTANT: dedupe engaged_treatment to 1 row per (ID, targeted_date)
+#    (keep the latest index_date row)
+# =======================
+eng_raw = df[df[COHORT].isin([ENG_CTRL, ENG_TRT])].copy()
+
+eng_trt = (
+    eng_raw[eng_raw[COHORT].eq(ENG_TRT)]
+      .sort_values([ID, TARG_DT, INDEX_DT])              # keep latest snapshot if duplicates
+      .drop_duplicates([ID, TARG_DT], keep='last')       # <-- critical
+)
+
+eng_ctrl = eng_raw[eng_raw[COHORT].ne(ENG_TRT)].copy()
+
+eng_eval = pd.concat([eng_ctrl, eng_trt], ignore_index=True)
+
+# =======================
+# 2) Targeted snapshot rows (targeted_treatment where index_date == targeted_date)
+#    Dedupe to 1 row per (ID, targeted_date)
+# =======================
+targ = df[
+    (df[COHORT].eq(TARG_TRT)) &
+    (df[INDEX_DT].eq(df[TARG_DT]))
+].copy()
+
+targ = (
+    targ.sort_values([ID, TARG_DT, INDEX_DT])
+        .drop_duplicates([ID, TARG_DT], keep='last')
+)
+
+# =======================
+# 3) Feature columns to overwrite
+# =======================
+exclude = {
+    ID, 'member_id',
+    COHORT, 'treatment_grp',
+    INDEX_DT, 'index_month',
+    TARG_DT, 'engaged_date',
+    'prev_6m', 'post_6m'
+}
+feature_cols = [c for c in df.columns if c not in exclude]
+
+# =======================
+# 4) Index + overwrite engaged_treatment features with targeted features
+# =======================
+eng_idx  = eng_eval.set_index([ID, TARG_DT])
+targ_idx = targ.set_index([ID, TARG_DT])
+
+# sanity: ensure engaged_treatment keys are unique now
+dup_trt = eng_idx[eng_idx[COHORT].eq(ENG_TRT)].index.duplicated().sum()
+print("Duplicate (ID,targeted_date) keys in engaged_treatment after dedupe:", int(dup_trt))
+
+valid_idx = eng_idx[eng_idx[COHORT].eq(ENG_TRT)].index.intersection(targ_idx.index)
+
+print("Engaged treatment rows (post-dedupe):", int((eng_idx[COHORT] == ENG_TRT).sum()))
+print("Matched targeted snapshot rows:", int(len(valid_idx)))
+print("Unmatched engaged_treatment rows:", int((eng_idx[COHORT] == ENG_TRT).sum() - len(valid_idx)))
+
+# overwrite (NO .values)
+eng_idx.loc[valid_idx, feature_cols] = targ_idx.loc[valid_idx, feature_cols]
+
+# =======================
+# 5) Drop engaged_treatment rows without targeted snapshot
+# =======================
+eng_idx = eng_idx.loc[
+    (eng_idx[COHORT] != ENG_TRT) |
+    (eng_idx.index.isin(valid_idx))
+]
+
+# =======================
+# 6) Anchor index_date to targeted_date
+# =======================
+eng_idx[INDEX_DT] = eng_idx.index.get_level_values(TARG_DT)
+
+eng_eval_swapped = eng_idx.reset_index()
+
+print("\nFinal cohort counts:")
+print(eng_eval_swapped[COHORT].value_counts(dropna=False))
+
+
+
+
+
+
+import pandas as pd
+
+# =======================
 # CONFIG (edit if needed)
 # =======================
 ID = 'individual_id'          # or 'member_id'
