@@ -1,3 +1,61 @@
+import pandas as pd
+
+# ---- CONFIG ----
+ID = 'individual_id'      # or 'member_id'
+COHORT = 'cohort_type'
+TARG_DT = 'targeted_date'
+INDEX_DT = 'index_date'
+
+ENG_CTRL = 'ENGAGED_CONTROL'
+ENG_TRT  = 'engaged_treatment'
+TARG_TRT = 'targeted_treatment'
+# ----------------
+
+# 1) Keep only engaged_control + engaged_treatment
+eng_eval = df[df[COHORT].isin([ENG_CTRL, ENG_TRT])].copy()
+
+# 2) Get targeted snapshot rows (where index_date == targeted_date)
+targ = df[
+    (df[COHORT] == TARG_TRT) &
+    (df[INDEX_DT] == df[TARG_DT])
+].copy()
+
+# 3) Define feature columns to overwrite (exclude IDs/dates/meta)
+exclude = {
+    ID, 'member_id',
+    COHORT, 'treatment_grp',
+    INDEX_DT, 'index_month',
+    TARG_DT, 'engaged_date',
+    'prev_6m', 'post_6m'
+}
+feature_cols = [c for c in df.columns if c not in exclude]
+
+# 4) Set multi-index for clean substitution
+eng_idx = eng_eval.set_index([ID, TARG_DT])
+targ_idx = targ.set_index([ID, TARG_DT])
+
+# 5) Identify engaged_treatment rows
+mask = eng_idx[COHORT] == ENG_TRT
+
+# Only overwrite where targeted snapshot exists
+keys = eng_idx.index[mask].intersection(targ_idx.index)
+
+eng_idx.loc[keys, feature_cols] = targ_idx.loc[keys, feature_cols].values
+
+# 6) Anchor index_date to targeted_date (ITT style)
+eng_idx[INDEX_DT] = eng_idx.index.get_level_values(TARG_DT)
+
+eng_eval = eng_idx.reset_index()
+
+print(f"Substituted targeted features for {len(keys):,} engaged_treatment rows.")
+
+
+
+
+
+
+
+
 Subject: PCR Follow-up: Vendor–Internal CM Overlap and PCR Denominator View
 
 Hi all,
