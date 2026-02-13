@@ -1,3 +1,20 @@
+
+# overwrite features
+eng_idx.loc[valid_idx, feature_cols] = targ_idx.loc[valid_idx, feature_cols]
+
+# DROP unmatched engaged_treatment rows
+eng_idx = eng_idx.loc[
+    (~mask) | (eng_idx.index.isin(valid_idx))
+]
+
+# anchor index_date
+eng_idx[INDEX_DT] = eng_idx.index.get_level_values(TARG_DT)
+
+eng_eval_swapped = eng_idx.reset_index()
+
+
+
+
 import pandas as pd
 
 # =======================
