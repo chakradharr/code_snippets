@@ -1,3 +1,63 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# ---- Filter Treatment Group ----
+df_treat = df[df['treatment_grp'] == 1].copy()
+
+col = 'bfr_ut_er_visits_6_mth'  # retrospective ER column
+
+# ---- Create Bins ----
+bins = [0,1,2,3,4,5,10,100]
+labels = ['0','1','2','3','4','5-9','10+']
+
+df_treat['er_binned'] = pd.cut(
+    df_treat[col],
+    bins=bins,
+    labels=labels,
+    right=False
+)
+
+# ---- Calculate Distribution ----
+counts = df_treat['er_binned'].value_counts().sort_index()
+percent = counts / counts.sum() * 100
+
+# ---- Plot ----
+plt.figure(figsize=(9,5))
+bars = plt.bar(percent.index.astype(str), percent.values)
+
+# ---- Custom Colors ----
+for i, label in enumerate(percent.index):
+    if label in ['4','5-9','10+']:
+        bars[i].set_color('#1f77b4')  # Blue (4+ Eligible)
+    else:
+        bars[i].set_color('#d62728')  # Red (<4)
+
+# ---- Add Percentage Labels ----
+for i, value in enumerate(percent.values):
+    plt.text(i, value + 0.5, f"{value:.1f}%", 
+             ha='center', fontsize=10, fontweight='bold')
+
+# ---- Formatting ----
+plt.title('Retrospective ER Visit Distribution\n(Treatment Group Only)', fontsize=14)
+plt.ylabel('Percent of Members')
+plt.xlabel('ER Visits (Past 6 Months)')
+plt.xticks(rotation=0)
+plt.ylim(0, max(percent.values) + 5)
+plt.grid(axis='y', linestyle='--', alpha=0.4)
+
+plt.tight_layout()
+plt.show()
+
+# ---- Summary Numbers ----
+pct_below_4 = percent.loc[['0','1','2','3']].sum()
+pct_4_plus = percent.loc[['4','5-9','10+']].sum()
+
+print(f"% Below 4 ER visits (retrospective): {pct_below_4:.1f}%")
+print(f"% 4+ ER visits (retrospective): {pct_4_plus:.1f}%")
+
+
+
 
 import pandas as pd
 import matplotlib.pyplot as plt
