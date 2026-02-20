@@ -1,3 +1,61 @@
+# ================================
+# PARALLEL TRENDS PLOT (Engaged vs Control)
+# ================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# -------- 1. Define month columns --------
+pre_cols  = [f"bfr_er_visits_pt_{i}_mth" for i in range(6,0,-1)]
+post_cols = [f"aft_er_visits_pt_{i}_mth" for i in range(1,7)]
+
+# -------- 2. Create event-time mapping --------
+event_map = {}
+
+for i,col in enumerate(pre_cols):
+    event_map[col] = -(6-i)   # -6 to -1
+
+for i,col in enumerate(post_cols):
+    event_map[col] = i+1      # +1 to +6
+
+# -------- 3. Reshape wide → long --------
+df_long = df.melt(
+    id_vars=["treatment_grp"],
+    value_vars=pre_cols + post_cols,
+    var_name="period",
+    value_name="er_visits"
+)
+
+df_long["event_time"] = df_long["period"].map(event_map)
+
+# -------- 4. Compute group means --------
+trend_df = (
+    df_long
+    .groupby(["event_time","treatment_grp"])["er_visits"]
+    .mean()
+    .reset_index()
+)
+
+# -------- 5. Plot --------
+plt.figure(figsize=(8,5))
+
+for grp,label in [(0,"Control"), (1,"Engaged")]:
+    subset = trend_df[trend_df["treatment_grp"]==grp]
+    plt.plot(subset["event_time"], subset["er_visits"], marker="o", label=label)
+
+plt.axvline(x=0, linestyle="--", color="black")  # index line
+plt.xlabel("Months Relative to Index")
+plt.ylabel("Mean ER Visits")
+plt.title("Parallel Trends Check")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+
+
+
 
 
 eng_eval.loc[
