@@ -1,3 +1,65 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ---- Filter targeted members ----
+df_targeted = df[df['targeted_flag'] == 1]   # change column name if needed
+
+col = 'bfr_ut_er_visits_6_mth'  # retrospective ER count column
+
+# ---- Create bins ----
+bins = [0,1,2,3,4,5,10,100]
+labels = ['0','1','2','3','4','5-9','10+']
+
+df_targeted['er_binned'] = pd.cut(
+    df_targeted[col],
+    bins=bins,
+    labels=labels,
+    right=False
+)
+
+# ---- Calculate distribution ----
+counts = df_targeted['er_binned'].value_counts().sort_index()
+percent = counts / counts.sum() * 100
+
+# ---- Plot ----
+plt.figure(figsize=(8,5))
+bars = plt.bar(percent.index.astype(str), percent.values, edgecolor='black')
+
+# Highlight ER >=4 region
+for i, label in enumerate(percent.index):
+    if label in ['4','5-9','10+']:
+        bars[i].set_color('#4C72B0')
+    else:
+        bars[i].set_color('#C44E52')
+
+plt.axvline(x=3.5, linestyle='--')  # threshold marker
+plt.title('Retrospective ER Visit Distribution\n(Targeted Members)')
+plt.ylabel('Percent of Members')
+plt.xlabel('Retrospective ER Visits (Past 6 Months)')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+
+
+pct_below_4 = percent.loc[['0','1','2','3']].sum()
+pct_4_plus = percent.loc[['4','5-9','10+']].sum()
+
+print(f"% Below 4 ER visits (retrospective): {pct_below_4:.1f}%")
+print(f"% 4+ ER visits (retrospective): {pct_4_plus:.1f}%")
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ================================
 # PARALLEL TRENDS PLOT (Engaged vs Control)
 # ================================
