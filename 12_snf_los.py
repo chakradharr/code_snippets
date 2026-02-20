@@ -1,3 +1,19 @@
+
+
+eng_eval.loc[
+    eng_eval['cohort_type_new'] == 'targeted_but_not_engaged',
+    'treatment_grp'
+] = 0
+
+
+eng_eval[['treatment_grp','cohort_type_new']].value_counts()
+
+
+
+
+
+
+
 mdf = psm.matched_data.copy()
 
 # Columns with only 1 unique value overall
