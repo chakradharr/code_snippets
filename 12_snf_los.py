@@ -1,4 +1,42 @@
-import pandas as pd
+mdf = psm.matched_data.copy()
+
+# Columns with only 1 unique value overall
+constant_cols = [c for c in mdf.columns if mdf[c].nunique(dropna=False) <= 1]
+
+print("Constant columns (no variation at all):")
+print(constant_cols)
+
+
+problem_cols = []
+
+for c in mdf.columns:
+    if c == "treatment_grp":
+        continue
+    
+    n_t = mdf.loc[mdf["treatment_grp"]==1, c].nunique(dropna=False)
+    n_c = mdf.loc[mdf["treatment_grp"]==0, c].nunique(dropna=False)
+    
+    if n_t <= 1 or n_c <= 1:
+        problem_cols.append((c, n_t, n_c))
+
+print("Columns with no within-group variation:")
+for col in problem_cols:
+    print(col)
+    
+    
+    
+
+cols_to_remove = [c[0] for c in problem_cols]
+mdf_clean = mdf.drop(columns=cols_to_remove)
+
+print("Removed columns:", cols_to_remove)import pandas as pd
+
+
+
+
+
+
+
 
 # =======================
 # CONFIG
