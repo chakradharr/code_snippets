@@ -1,3 +1,27 @@
+
+Hi [Name],
+
+I spoke with the DE team regarding deploying the CatBoost model for batch inference in Vertex AI. Since Vertex doesn’t currently have a prebuilt container for CatBoost, their suggestion for now is to use a Python component in the pipeline as a temporary workaround.
+
+The idea is to:
+- Use a Python component to connect to Google Cloud
+- Download the model artifacts from the Vertex Model Registry / GCS
+- Load the model object in Python
+- Run inference on the input data and write the predictions back to the target table
+
+I’ve shared a couple of code snippets showing how to fetch the model artifacts from Vertex. You can use that as a starting point and integrate the inference logic into the Python component.
+
+Let me know if anything is unclear while implementing this.
+
+Thanks,  
+[Your Name]
+
+
+
+
+
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
