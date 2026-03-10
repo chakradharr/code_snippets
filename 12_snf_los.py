@@ -1,4 +1,54 @@
-I need help understanding and analyzing a program evaluation workflow in this notebook.
+I have a dataset containing member-level records for a readmission program evaluation. Each record represents a member admission episode. The dataset includes the following fields (names may vary slightly):
+	•	admission_date or index_date
+	•	cohort indicator showing whether the member belongs to test / engaged or holdout / non-engaged group
+	•	predicted readmission probability from a risk-adjusted readmission model
+	•	actual readmission outcome within 30 days (binary 0/1)
+
+From this dataset, I want to construct a monthly cohort-level table with the following columns:
+
+| month | holdout_rr | test_rr | expected_rr | observed_rr |
+
+Definitions:
+
+month
+	•	Derived from the admission/index date (year-month).
+
+holdout_rr
+	•	The actual readmission rate for members belonging to the holdout / non-engaged group in that month.
+
+test_rr
+	•	The actual readmission rate for members belonging to the test / engaged group in that month.
+
+expected_rr
+	•	The average predicted readmission probability from the risk-adjusted model for all members in that monthly cohort.
+
+observed_rr
+	•	The actual readmission rate across all members in that monthly cohort, regardless of cohort group.
+
+Steps required:
+	1.	Extract the month from the admission/index date.
+	2.	Group data by month.
+	3.	Within each month:
+	•	compute mean(readmission_flag) for holdout group → holdout_rr
+	•	compute mean(readmission_flag) for test group → test_rr
+	•	compute mean(predicted_probability) → expected_rr
+	•	compute mean(readmission_flag) across all members → observed_rr
+	4.	Output a table with one row per month containing the columns listed above.
+
+Use vectorized operations (pandas or SQL depending on the environment) and ensure the final output is sorted by month.
+
+Do not assume additional fields beyond those described in the dataset.
+
+
+
+
+
+
+
+
+
+
+mI need help understanding and analyzing a program evaluation workflow in this notebook.
 
 This notebook contains analysis performed by another analytics team to evaluate a PCR call pod outreach program intended to reduce inpatient readmissions.
 
