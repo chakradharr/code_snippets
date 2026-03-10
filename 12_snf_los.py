@@ -1,3 +1,48 @@
+I need help understanding and analyzing a program evaluation workflow in this notebook.
+
+This notebook contains analysis performed by another analytics team to evaluate a PCR call pod outreach program intended to reduce inpatient readmissions.
+
+The evaluation in the notebook does the following:
+	•	Defines test and holdout cohorts
+	•	Calculates 30-day readmission rates for both groups
+	•	Computes the difference between the readmission rates
+	•	Performs statistical hypothesis testing using a z-test for proportions
+	•	Estimates avoided readmissions
+	•	Estimates financial savings using:
+	•	cohort size
+	•	difference in readmission rates
+	•	assumed cost per readmission
+	•	annualization
+
+The outputs of that analysis include:
+	•	test readmission rate
+	•	holdout readmission rate
+	•	absolute reduction in readmission rate
+	•	p-values from the statistical test
+	•	estimated avoided readmissions
+	•	estimated savings
+
+Separately, our team has a retrospective readmission model that produces expected readmission probabilities for members after inpatient admissions.
+
+Using this model, we can calculate expected readmission rates for cohorts and compare them with observed readmission rates.
+
+My objective is to analyze the relationship between:
+	1.	Program impact measured in this notebook (test vs holdout evaluation)
+	2.	Expected vs observed readmission signals derived from the retrospective model
+
+Please read the notebook/code and help summarize:
+	•	how the evaluation metrics are calculated
+	•	what inputs are used to compute avoided readmissions and savings
+	•	how cohort sizes and readmission counts are used in the calculations
+
+Focus on understanding the workflow and calculations present in the notebook.
+
+Do not introduce assumptions that are not present in the code or data.
+
+
+
+
+
 
 Hi [Name],
 
