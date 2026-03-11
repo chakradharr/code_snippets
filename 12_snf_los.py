@@ -1,197 +1,126 @@
-Slide 1 — Program Overview Title: ER Diversion Initiative
+Slide 1 — ER Diversion Program Overview Initiative - Reduce avoidable ER
+utilization by providing care managers with insights on drivers of ER
+use and enabling redirection to alternate care settings.
 
-Objective Reduce ER utilization and downstream inpatient admissions by
-proactively engaging high-utilizing members and guiding them to
-appropriate care settings.
+Program - Pilot targeting Medicare and DSNP members in the Great Lakes
+market (Northern IL, Michigan, Indianapolis, Wisconsin).
 
-Target Population Medicare & DSNP members with ≥4 ER visits in the past
-6 months.
+Evaluation Strategy Primary Analysis (Effect of Engagement) - Treatment:
+Targeted AND Engaged members - Control: Targeted but NOT Engaged members
 
-Program Geography Great Lakes market (Northern IL, Michigan,
-Indianapolis, Wisconsin).
+Secondary Analysis (Intent‑to‑Treat) - Treatment: All targeted members -
+Control: National Medicare random sample with ER >4 in the past 6 months
 
-Slide 2 — Operational Workflow
+Outcomes - Primary: ER Visits - Secondary: IP Admissions, Total Medical
+Cost
 
-Identification and Outreach Process 1. Members identified based on ≥4 ER
-visits in prior 6 months. 2. Identified members recorded as targeted. 3.
-Care manager reviews targeted members. 4. Care manager attempts outreach
-and engagement.
+Slide 2 — Evaluation Design and Statistical Approach Population -
+Medicare members targeted for ER Diversion Program.
 
-Operational Constraint Only one care manager assigned to the pilot.
-Engagement limited by CM capacity.
+Timeframe - Program period: July 2023 – April 2025 - Baseline period: 6
+months prior to engagement - Follow‑up period: 6 months after engagement
 
-Program Funnel Identified / Targeted: 21,705 members (100%) Engaged: 737
-members (3.3%)
+Statistical Approach - Propensity score weighting to balance baseline
+characteristics - Difference‑in‑Difference (DiD) estimation to measure
+program impact - Adjustment for demographics, utilization patterns, and
+clinical risk scores
 
-Slide 3 — Data and Evaluation Challenges
+Slide 3 — Program Operational Reality Action Title: Targeting was broad
+but engagement was capacity constrained
 
-Retrospective Reconstruction Issue
+-   Total members identified for ER Diversion: 21,705
+-   All identified members were operationally marked as “targeted”
+-   Engagement was limited to 3.3% due to care manager capacity
+    constraints
 
-Operational identification used real-time hybrid data sources: - Daily
-claims (recent 0–3 months) - Medical case insights (months 3–6)
+Breakdown - Targeted and Engaged: 737 members (3.3%) - Targeted but Not
+Engaged: 20,968 members (96.7%)
 
-Retrospective evaluation uses fully adjudicated claims.
+Implication - Very small engagement rate means ITT analysis may dilute
+measurable program impact.
 
-As a result: - Some targeted members appear to have <4 ER visits
-retrospectively. - Differences arise due to claims lag and data
-reconciliation.
+Slide 4 — Eligibility Definition Changes in Retrospective Claims Action
+Title: Retrospective claims show only 65% of engaged members meet ER>4
+criteria
 
-Slide 4 — Analytic Cohort Refinement
+Operational Eligibility - ER >4 visits in past 6 months at time of
+identification using near‑real‑time claims.
 
-Ensuring Consistent Eligibility Definition
+Retrospective Claims View - Only 65% of engaged members meet ER >4
+criteria using adjudicated claims.
 
-To align treatment and control cohorts: - Treatment cohort restricted to
-members with ER ≥4 using adjudicated claims. - Approximately 65% of
-targeted members meet this threshold retrospectively.
+Reason - Differences between operational claims feeds and finalized
+adjudicated claims data.
 
-Purpose: - Reduce eligibility misclassification. - Ensure comparability
-between treatment and control groups.
+Adjustment - Treatment cohort restricted to members with ER >4 using
+adjudicated claims to align with control definition.
 
-Slide 5 — Evaluation Framework
+Slide 5 — Baseline Characteristics Differ Between Groups Action Title:
+Treatment and control groups differ substantially before adjustment
 
-Because engagement was limited by CM capacity, two complementary
-analyses were conducted.
+Observations - Significant baseline differences across multiple
+utilization and risk variables. - Standardized Mean Differences
+(SMD) >0.1 observed in several variables.
 
-Primary Analysis — Engagement Effect Compare: Engaged members vs
-Targeted but Not Engaged members.
+Examples of imbalance - PCP visit utilization - Care management
+engagement overlap - Risk scores - Chronic condition counts
 
-Purpose: Evaluate the impact of care manager engagement on utilization
-outcomes.
+Implication - Statistical adjustment is required to reduce confounding
+bias.
 
-Secondary Analysis — Program Availability (Intent-to-Treat) Compare:
-Targeted members vs National Medicare sample with ER ≥4.
+Slide 6 — Covariate Balance After Adjustment Action Title: Propensity
+score weighting substantially improves balance
 
-Purpose: Evaluate the impact of program rollout in the market.
+Approach - Propensity score matching and weighting applied. - Exact
+matching on selected temporal features.
 
-Slide 6 — Methodology
+Results - Standardized Mean Differences reduced below 0.1 across most
+covariates. - Treatment and control groups become more comparable.
 
-Risk Adjustment and Matching
+Implication - Adjusted cohorts provide a more valid comparison for
+causal impact estimation.
 
-Baseline differences between cohorts addressed using: - Variable
-selection from baseline characteristics - Propensity score modeling -
-Overlap weighting / matching
+Slide 7 — Impact Analysis Results Action Title: No statistically
+significant reduction observed in ER utilization
 
-Goal: Ensure comparable baseline characteristics between treatment and
-control groups.
+Method - Difference‑in‑Difference with IPW adjustment.
 
-Slide 7 — Parallel Trends Assessment
+Results ER Visits - Slight reduction observed but not statistically
+significant.
 
-Parallel trends evaluated using monthly ER utilization in the 6 months
-prior to index date.
+IP Admissions - Small increase observed but not statistically
+significant.
 
-Observation: Pre-period trends between engaged and non-engaged members
-were not fully parallel.
+Total Medical Cost - Directionally lower but not statistically
+significant.
 
-Reason: Engagement may correlate with higher baseline risk and
-operational outreach prioritization.
+Conclusion - No statistically significant evidence of impact detected in
+current analysis.
 
-Implication: Engagement analysis interpreted with caution.
+Slide 8 — Parallel Trends Assumption Check Action Title: Parallel trends
+assumption may be violated
 
-Slide 8 — Primary Analysis Results
+Observation - Pre‑intervention ER visit trends differ between treatment
+and control groups.
 
-Engagement Effect
+Evidence - Treatment group slope differs significantly from control
+group slope in pre‑period.
 
-Outcome measures: - ER utilization (PMPM) - IP admissions - Total
-medical costs
+Implication - Violation of parallel trends may bias DiD estimates.
 
-Key observations: - No statistically significant reduction in ER
-utilization. - Directional reduction observed in inpatient admissions. -
-Total cost differences not statistically significant.
+Interpretation - Results should be interpreted cautiously due to this
+limitation.
 
-Slide 9 — Secondary Analysis Results
+Slide 9 — Study Power Assessment Action Title: Current study is severely
+underpowered to detect expected effects
 
-Program Availability (Intent-to-Treat)
+Sample Sizes - Treatment: ~477 members - Control: ~2,371 members
 
-Comparison: Targeted members vs National ER ≥4 control group.
+Estimated Study Power - Approximately 6% power to detect meaningful
+program effects.
 
-Purpose: Estimate impact of program availability at market level.
+Detectable Effect Size - Study can only detect very large changes (~29%
+reduction in ER visits).
 
-Results: - No significant difference in ER utilization. - Directional
-trends consistent with primary analysis.
-
-Slide 10 — Interpretation
-
-Key Takeaways
-
-1.  Engagement rate limited by care manager capacity.
-2.  Operational identification differs from retrospective claims
-    reconstruction.
-3.  Engagement analysis suggests potential downstream IP utilization
-    reduction.
-4.  Overall program impact difficult to detect due to low engagement
-    rate.
-
-Slide 11 — Operational Implications
-
-Program Improvement Opportunities
-
--   Expand care manager capacity to increase engagement.
--   Automate outreach workflows.
--   Improve real-time data integration for identification.
-
-Higher engagement may improve measurable program impact.
-
-Slide 12 — Summary
-
--   Program successfully identified high ER utilizers.
--   Engagement limited by operational capacity.
--   Analyses conducted to evaluate both engagement impact and program
-    availability impact.
--   Results provide directional insights for program scaling.
-
-
-
-
-
-
-
-
-
-
-
-
-
-I have a dataset where each row represents a monthly cohort of members for a program evaluation. The dataset already contains these columns:
-
-- month
-- expected_rr
-- observed_rr
-- test_rr
-- holdout_rr
-- expected_rr_test
-- expected_rr_holdout
-- observed_rr_test
-- observed_rr_holdout
-
-I want to validate whether the risk-adjusted readmission model signal aligns with the program impact estimated by the evaluation team.
-
-Please generate Python code that does the following:
-
-1. Create two new columns:
-   - true_impact = holdout_rr - test_rr
-   - proxy_impact = expected_rr - observed_rr
-
-2. Compute the Pearson correlation between true_impact and proxy_impact.
-
-3. Run a simple linear regression:
-   true_impact = intercept + slope * proxy_impact
-
-4. Print:
-   - correlation coefficient
-   - regression intercept
-   - regression slope
-   - R-squared
-
-5. Create a scatter plot with:
-   - x-axis = proxy_impact
-   - y-axis = true_impact
-   - regression line overlaid
-   - each point labeled by month if possible
-
-6. Add a short printed interpretation explaining whether the proxy signal appears to align with the evaluation-based program impact.
-
-Use pandas, matplotlib, and either statsmodels or scikit-learn.
-
-Assume the dataframe is already loaded as df.
-
-Please write clean, runnable Python code with comments.
+Implication - The study is unlikely to detect modest but meaningful
+program impacts.
