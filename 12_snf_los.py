@@ -124,3 +124,100 @@ reduction in ER visits).
 
 Implication - The study is unlikely to detect modest but meaningful
 program impacts.
+
+
+Slide 10
+
+Key Evaluation Constraints Affecting Results
+
+Action Title:
+Program operational constraints limit measurable impact
+
+Key Constraints
+
+1. Very Low Engagement Rate
+	•	Only 3.3% of targeted members were engaged
+	•	Engagement limited due to single care manager capacity
+
+2. Operational vs Retrospective Eligibility Differences
+	•	Operational targeting used near-real-time claims
+	•	Retrospective adjudicated claims show only 65% met ER>4 criteria
+
+3. Parallel Trends Assumption Not Fully Satisfied
+	•	Pre-intervention ER trends differ between treatment and control groups
+
+4. Limited Statistical Power
+	•	Current sample size provides ~6% power
+	•	Detectable effect size (~29% ER reduction) is much larger than expected program impact
+
+Takeaway
+
+Current evaluation framework faces structural limitations that reduce the ability to detect program impact.
+
+⸻
+
+Slide 11
+
+What We Can and Cannot Conclude
+
+Action Title:
+Current results should be interpreted cautiously
+
+What We Can Conclude
+	•	No statistically significant change in ER utilization, IP admissions, or medical costs detected
+	•	Engagement cohort analysis suggests directionally lower ER utilization, but not statistically significant
+	•	Baseline differences between groups were successfully reduced using weighting
+
+⸻
+
+What We Cannot Conclude
+	•	Cannot definitively determine program effectiveness
+	•	Small engagement cohort limits statistical power
+	•	Parallel trend violation introduces causal inference limitations
+
+⸻
+
+Interpretation
+
+Lack of statistical significance may reflect data and evaluation limitations rather than absence of program impact
+
+⸻
+
+Slide 12
+
+Recommendations for Future Evaluation
+
+Action Title:
+Improving program evaluation and impact measurement
+
+Program Operations
+	•	Expand care manager capacity to increase engagement rates
+	•	Target members earlier in risk trajectory
+
+⸻
+
+Data Improvements
+	•	Align operational eligibility logic with retrospective claims definitions
+	•	Track member-level outreach and engagement timestamps more consistently
+
+⸻
+
+Evaluation Improvements
+	•	Consider prospective evaluation design
+	•	Implement randomized or phased rollout where feasible
+	•	Increase sample size to improve statistical power
+
+⸻
+
+Next Steps
+	•	Continue monitoring outcomes as program scales
+	•	Re-evaluate impact once larger engagement cohort becomes available
+
+⸻
+
+Important Tip for Your Presentation
+
+Your closing narrative should be this:
+
+The evaluation did not detect statistically significant impact, but this result is primarily driven by program operational constraints, small engagement cohorts, and data limitations rather than conclusive evidence of program ineffectiveness.
+
