@@ -1,3 +1,61 @@
+SLIDE: Evaluation Design
+
+Objective
+• Evaluate impact of ER Diversion program on ER visits, IP admissions, and total medical costs
+
+Primary Analysis – Effect of Engagement
+• Treatment: Members targeted and engaged in ER Diversion program
+• Control: Members targeted but not engaged
+• Method: Propensity Score Matching + Difference-in-Difference (DiD)
+• Rationale: Estimate impact of actual program engagement
+
+Secondary Analysis – Population Level Impact
+• Treatment: All targeted members
+• Control: National high ER utilization cohort (≥4 ER visits)
+• Method: Difference-in-Difference (DiD)
+• Rationale: Evaluate overall program impact under real-world operational constraints
+
+Study Windows
+• Index date: Program targeting date
+• Baseline period: 6 months prior
+• Follow-up period: 6 months post
+
+Outcomes Evaluated
+• ER Visits (PMPM)
+• IP Admissions (PMPM)
+• Total Medical Costs (PMPM)
+
+⸻
+
+SLIDE: Evaluation Considerations / Operational Constraints
+
+Program Operations
+• Low engagement rate due to care management capacity constraints
+• Targeting workflow not fully tracked, limiting evaluation of outreach effectiveness
+• Overlap with other care management programs may influence utilization
+
+Data & Sample Size
+• Small engaged cohort limits statistical power
+• Power analysis indicates study may be underpowered
+• Short follow-up window (6 months) may not capture longer-term impact
+
+Methodological Considerations
+• Parallel trends assumption may not fully hold
+• Potential residual confounding despite matching
+• Selection bias possible between engaged vs non-engaged members
+
+Interpretation
+• Results should be interpreted as preliminary evidence, not definitive program impact
+
+
+
+
+
+
+
+
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
