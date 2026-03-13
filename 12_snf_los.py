@@ -1,3 +1,62 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# --- Extract SMD values ---
+raw = psm.tableone_raw[['variable_short','SMD']].rename(columns={'SMD':'SMD_raw'})
+matched = psm.tableone_matched[['variable_short','SMD']].rename(columns={'SMD':'SMD_matched'})
+
+# --- Merge raw and matched tables ---
+df_plot = raw.merge(matched, on='variable_short')
+
+# --- Sort by highest imbalance BEFORE matching ---
+df_plot = df_plot.sort_values('SMD_raw', ascending=False)
+
+# --- Select top variables (avoid crowded plot) ---
+df_plot = df_plot.head(15)
+
+# --- Reset index for plotting ---
+df_plot = df_plot.reset_index(drop=True)
+
+# --- Plot ---
+plt.figure(figsize=(10,12))
+
+y_pos = range(len(df_plot))
+
+# draw lines showing improvement
+for i,row in df_plot.iterrows():
+    plt.plot([row['SMD_raw'], row['SMD_matched']], [i,i], color='gray', linewidth=1)
+
+# raw points
+plt.scatter(df_plot['SMD_raw'], y_pos,
+            color='red', s=70, label='Before Matching')
+
+# matched points
+plt.scatter(df_plot['SMD_matched'], y_pos,
+            color='blue', marker='^', s=80, label='After Matching')
+
+# labels
+plt.yticks(y_pos, df_plot['variable_short'], fontsize=9)
+
+# balance reference lines
+plt.axvline(0.05, linestyle=':', color='gray')
+plt.axvline(0.1, linestyle='--', color='black')
+
+plt.xlabel('Absolute Standardized Mean Difference (SMD)')
+plt.title('Covariate Balance Before and After Matching')
+
+plt.xlim(0,0.25)
+
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
 Primary Method
 
 Propensity Score Matching + Difference-in-Difference (DiD)
