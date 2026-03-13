@@ -6,6 +6,58 @@ import matplotlib.pyplot as plt
 raw = psm.tableone_raw[['variable_short','SMD']].rename(columns={'SMD':'SMD_raw'})
 matched = psm.tableone_matched[['variable_short','SMD']].rename(columns={'SMD':'SMD_matched'})
 
+# --- Merge ---
+df_plot = raw.merge(matched, on='variable_short')
+
+# --- Sort by highest imbalance before matching ---
+df_plot = df_plot.sort_values('SMD_raw', ascending=False)
+
+# --- Keep top 25 variables ---
+df_plot = df_plot.head(25).reset_index(drop=True)
+
+# --- Plot ---
+plt.figure(figsize=(7,8))   # smaller height = squeezed plot
+
+y_pos = range(len(df_plot))
+
+# improvement lines
+for i,row in df_plot.iterrows():
+    plt.plot([row['SMD_raw'], row['SMD_matched']], [i,i],
+             color='gray', linewidth=0.8)
+
+# raw
+plt.scatter(df_plot['SMD_raw'], y_pos,
+            color='red', s=40, label='Raw')
+
+# matched
+plt.scatter(df_plot['SMD_matched'], y_pos,
+            color='blue', marker='^', s=45, label='Matched')
+
+# labels
+plt.yticks(y_pos, df_plot['variable_short'], fontsize=7)
+
+# vertical balance line
+plt.axvline(0.1, linestyle='--', color='black')
+
+plt.xlabel('Absolute Mean Standardized Difference (SMD)')
+plt.title("Love Plot ('treatment_grp' = 0 vs 1)")
+
+plt.xlim(0,0.5)
+
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# --- Extract SMD values ---
+raw = psm.tableone_raw[['variable_short','SMD']].rename(columns={'SMD':'SMD_raw'})
+matched = psm.tableone_matched[['variable_short','SMD']].rename(columns={'SMD':'SMD_matched'})
+
 # --- Merge raw and matched tables ---
 df_plot = raw.merge(matched, on='variable_short')
 
