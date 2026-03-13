@@ -1,4 +1,29 @@
-SLIDE: Evaluation Design
+SLIDE: ER Diversion Program – Member Status Definitions
+
+Identified
+• Members meeting program eligibility criteria
+• ≥4 ER visits in the prior 6 months based on operational identification logic
+
+Targeted
+• Identified members selected for outreach by care management
+• Operationally, most identified members are recorded as targeted in the system
+
+Engaged
+• Members successfully contacted and enrolled in the ER Diversion program
+• Receive care management support aimed at reducing avoidable ER utilization
+
+Program Funnel
+Identified → Targeted → Engaged
+
+Key Consideration
+• Engagement rates may be limited due to care management capacity constraints
+
+
+
+
+
+
+mSLIDE: Evaluation Design
 
 Objective
 • Evaluate impact of ER Diversion program on ER visits, IP admissions, and total medical costs
