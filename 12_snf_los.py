@@ -1,3 +1,21 @@
+Primary Method
+
+Propensity Score Matching + Difference-in-Difference (DiD)
+Members in the program were matched to similar comparison members based on baseline characteristics.
+A Difference-in-Difference framework was then used to compare changes in utilization between groups.
+
+Sensitivity Analyses
+
+• Propensity Score Overlap Weighting + DiD
+• Propensity Score Inverse Probability Weighting (IPW)
+
+These approaches test robustness of results across different adjustment methods.
+
+
+
+
+
+
 Slide 1 — ER Diversion Program Overview Initiative - Reduce avoidable ER
 utilization by providing care managers with insights on drivers of ER
 use and enabling redirection to alternate care settings.
