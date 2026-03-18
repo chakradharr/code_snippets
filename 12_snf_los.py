@@ -1,3 +1,16 @@
+I came across a column called sa_expected_discharge_dts in the SRVC authorization tables and was trying to understand how this field is populated.
+
+It looks like it might be coming either from the MedCompass UI (entered during auth creation) or possibly from some backend logic. Do you happen to know how this field is derived?
+
+If you’re not the right person for this, could you please point me to someone who might have more context on it? We think this field could be useful for some of our analysis.
+
+Thanks for your help!
+
+
+
+
+
+
 SLIDE: ER Diversion Program – Member Status Definitions
 
 Identified
