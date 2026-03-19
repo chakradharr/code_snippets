@@ -1,4 +1,19 @@
-I came across a column called sa_expected_discharge_dts in the SRVC authorization tables and was trying to understand how this field is populated.
+Could you share a bit more detail on how this is actually derived?
+
+Specifically, we are trying to understand:
+	•	What inputs or data sources are used to calculate this field
+	•	Whether it is based on any predefined rules (e.g., LOS assumptions, auth duration, etc.)
+	•	How frequently this value gets updated, if at all
+
+Understanding this logic would really help us assess how we can best leverage this field for our RAP monitoring and modeling use cases.
+
+Thanks again for your help!
+
+
+
+
+
+mI came across a column called sa_expected_discharge_dts in the SRVC authorization tables and was trying to understand how this field is populated.
 
 It looks like it might be coming either from the MedCompass UI (entered during auth creation) or possibly from some backend logic. Do you happen to know how this field is derived?
 
