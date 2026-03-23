@@ -1,3 +1,24 @@
+✅ 1. What is Risk-Adjusted Readmission Model
+
+A risk-adjusted readmission model predicts the expected readmission probability for each patient based on their individual clinical and utilization risk factors.
+
+⸻
+
+✅ 2. How it is different from existing RAP model
+
+The existing RAP model focuses more on overall readmission patterns and includes facility-level signals, whereas the risk-adjusted model isolates patient-level baseline risk to enable fair comparison across cohorts.
+
+⸻
+
+✅ 3. Why it is used
+
+It is used to normalize for differences in patient risk so that outcome differences reflect true program impact rather than differences in case mix.
+
+
+
+
+
+
 Create a professional PowerPoint-style slide deck (4–5 slides max) to explain how the risk-adjusted readmission model output aligns with actual program evaluation results.
 
 Context:
