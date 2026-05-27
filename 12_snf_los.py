@@ -1,746 +1,809 @@
-Based on the ML model review you've completed, please generate a DETAILED PROFESSIONAL REPORT with the following structure:
+# Risk-Adjusted Readmission Model: Methodology and Implementation Context
 
-## REPORT STRUCTURE
+## 1. Purpose of This Document
 
-### 1. EXECUTIVE SUMMARY (1-2 pages)
-- Overall Assessment Score (1-10) with justification
-- Top 3 Critical Issues (if any)
-- Overall Risk Level (Low/Medium/High)
-- Key Strengths
-- Recommended Next Steps (prioritized)
+This document explains the design and methodology for building a **risk-adjusted 30-day readmission model** for **facility benchmarking**. It lays out:
 
-### 2. CRITICAL ISSUES SECTION
-For each critical issue found:
-- Issue Title & Severity Level
-- Description of the problem
-- Why it's critical (impact on model validity)
-- Specific code reference/location
-- Detailed step-by-step fix with code examples
-- Testing approach to verify the fix
+- What we are trying to build
+- Why we are building it
+- How expected readmission probabilities are generated
+- How yearly model training, calibration, and scoring should work
+- Why prior-year reference rates are used
+- Why calibration is required
+- How to avoid data leakage
+- How facility-level expected rates and observed-to-expected ratios should be calculated
 
-### 3. METHODOLOGY REVIEW
-Evaluate and document:
-- Data splitting strategy (adequate? stratified?)
-- Cross-validation approach (proper implementation?)
-- Feature engineering process (any leakage?)
-- Baseline comparison (present? appropriate?)
-- Metric selection (correct for problem type?)
-- Hyperparameter tuning approach (potential overfitting?)
-
-### 4. DATA QUALITY & LEAKAGE DETECTION
-- Data leakage analysis (temporal, target, feature leakage)
-- Train-test contamination checks
-- Preprocessing pipeline review (when/where applied)
-- Handling of missing values, outliers, categorical features
-- Data scaling/normalization (correct placement in pipeline?)
-
-### 5. CODE QUALITY ASSESSMENT
-- Reproducibility score (seeds, documentation)
-- Code organization (modular? maintainable?)
-- Error handling and edge cases
-- Use of best practices (pipelines, proper libraries)
-- Areas needing refactoring
-
-### 6. STATISTICAL & PERFORMANCE ANALYSIS
-- Metrics interpretation correctness
-- Generalization gap analysis (train vs test performance)
-- Class imbalance handling (if applicable)
-- Confidence intervals and significance testing
-- Multicollinearity checks (if applicable)
-
-### 7. DETAILED RECOMMENDATIONS
-Create a prioritized action plan:
-- MUST DO (blocking issues)
-- SHOULD DO (important improvements)
-- NICE TO HAVE (enhancements)
-
-For each item, provide:
-- What to change
-- Why it matters
-- How to implement (with code examples)
-- Expected impact
-
-### 8. CORRECTED CODE SNIPPETS
-Provide complete, production-ready code examples for:
-- Proper train-test-split implementation
-- Correct pipeline setup
-- Fixed preprocessing steps
-- Any other critical corrections
-
-### 9. TESTING & VALIDATION CHECKLIST
-Create a checklist the team should follow:
-- [ ] Run with different random seeds (reproducibility)
-- [ ] Test on new unseen data
-- [ ] Verify no data leakage
-- [ ] Check metric calculations independently
-- [ ] Validate class distribution in splits
-- [ ] Compare against baseline
-- [ ] Test edge cases
-
-### 10. COMMON PITFALLS SUMMARY
-Highlight which common ML pitfalls were present:
-- [ ] Fitting scalers before train-test split
-- [ ] Using future information
-- [ ] Optimizing on test set
-- [ ] Improper missing value handling
-- [ ] Information leakage through features
-- [ ] Inappropriate metric selection
-- [ ] No baseline comparison
-- [ ] Reproducibility issues
-- [ ] Other: ___
-
-### 11. POSITIVE ASPECTS
-- What the team did well
-- Strong practices observed
-- Areas of good code quality
-- Sound methodological choices
-
-### 12. APPENDIX
-- Detailed metric calculations (if needed)
-- Visual diagrams of data flow
-- Side-by-side code comparisons
-- Reference links to best practices
-
-## FORMATTING REQUIREMENTS
-- Use clear headers and subheaders
-- Include code blocks with syntax highlighting (```python)
-- Create tables for comparison/checklists
-- Use emojis/symbols for severity levels:
-  🔴 CRITICAL (blocking)
-  🟠 MAJOR (should fix)
-  🟡 MINOR (nice to have)
-- Add page breaks between major sections
-- Include a table of contents at the beginning
-- Make it 8-15 pages comprehensive yet readable
-
-## TONE & STYLE
-- Professional but constructive
-- Educational (explain WHY things matter)
-- Actionable (HOW to fix things)
-- Balanced (acknowledge what's good AND what needs improvement)
-- Peer-focused (respectful, not condescending)
-
-## OUTPUT FORMAT
-Generate this as:
-1. A well-structured markdown document (.md file)
-2. Ready to be converted to PDF
-3. With clear section numbering
-4. Include a summary metrics table
+The goal is to provide enough context for another analyst, data scientist, or AI coding agent to implement the framework correctly.
 
 ---
 
-NOW GENERATE THE DETAILED REPORT BASED ON YOUR ML MODEL REVIEW FINDINGS.
+## 2. What We Are Trying to Do
 
+We are building a **risk-adjusted readmission model** that predicts the probability that an inpatient admission will result in a **30-day readmission**.
 
+The model is intended for **facility benchmarking**, not only member targeting.
 
+The unit of analysis is:
 
+> **Each inpatient admission, indexed at discharge date**
 
+For every eligible inpatient discharge, the model should output:
 
+```text
+Expected 30-day readmission probability
+```
 
+At the facility level, these member/admission-level probabilities are aggregated to calculate:
 
-✅ 1. What is Risk-Adjusted Readmission Model
+```text
+Expected readmissions = sum(predicted calibrated probabilities)
+```
 
-A risk-adjusted readmission model predicts the expected readmission probability for each patient based on their individual clinical and utilization risk factors.
+Then facility-level expected readmission rate is:
 
-⸻
+```text
+Expected readmission rate = expected readmissions / number of eligible index admissions
+```
 
-✅ 2. How it is different from existing RAP model
+And the observed-to-expected ratio is:
 
-The existing RAP model focuses more on overall readmission patterns and includes facility-level signals, whereas the risk-adjusted model isolates patient-level baseline risk to enable fair comparison across cohorts.
+```text
+O/E ratio = observed readmissions / expected readmissions
+```
 
-⸻
+---
 
-✅ 3. Why it is used
+## 3. Why We Are Doing This
 
-It is used to normalize for differences in patient risk so that outcome differences reflect true program impact rather than differences in case mix.
+Raw readmission rates are not enough for fair facility comparison.
 
+Example:
 
+- Facility A may serve sicker members with more complex conditions.
+- Facility B may serve relatively healthier members.
+- Facility A may have a higher raw readmission rate, but that does not automatically mean Facility A is performing worse.
 
+A risk-adjusted model helps answer:
 
+> Given the clinical and utilization risk profile of the patients treated by this facility, how many readmissions would we have expected?
 
+This enables fairer comparison across facilities.
 
-Create a professional PowerPoint-style slide deck (4–5 slides max) to explain how the risk-adjusted readmission model output aligns with actual program evaluation results.
+The key business use cases are:
 
-Context:
-- We have a healthcare program evaluation (e.g., NBA call pod / care management program)
-- Actual evaluation compares outcomes between groups (e.g., test vs holdout or engaged vs non-engaged)
-- Separately, we use a risk-adjusted readmission model to estimate expected readmission rates
-- We compare observed vs expected outcomes to derive a risk-adjusted view of performance
+1. **Facility benchmarking**  
+   Compare observed readmission performance against expected risk-adjusted performance.
 
-Goal:
-- Demonstrate that the risk-adjusted model output produces results that are consistent with actual evaluation findings
-- Show that both approaches lead to similar directional conclusions about program impact
+2. **Performance monitoring**  
+   Track whether facilities are performing better or worse than expected over time.
 
-Include the following slides:
+3. **Program and vendor evaluation support**  
+   Use expected readmission rates as a risk-adjusted baseline for cohorts.
 
-Slide 1: Objective
-- Clearly state:
-  “Validate whether risk-adjusted model outputs align with actual program evaluation results”
-- Why this matters:
-  - Confidence in model-based insights
-  - Consistency across evaluation approaches
+4. **Executive reporting**  
+   Summarize which facilities have higher-than-expected or lower-than-expected readmissions.
 
-Slide 2: Actual Program Evaluation Results
-- Summarize key results from evaluation:
-  - Test vs Holdout (or Engaged vs Non-Engaged)
-  - Readmission rate differences
-  - Any cohort-level insights (Acute, Post-Acute, etc.)
-- Keep it high level and business-friendly
+---
 
-Slide 3: Risk-Adjusted Model Output
-- Define:
-  - Expected Readmission Rate (model-based)
-  - Observed Readmission Rate (actual)
-- Show risk-adjusted comparison:
-  - (Observed - Expected) for each group
-  - Difference between groups after adjustment
-- Explain simply:
-  “Adjusts for baseline risk differences to enable fair comparison”
+## 4. Target Definition
 
-Slide 4: Alignment Between Model and Evaluation
-- Compare:
-  - Direction of impact (improvement vs no improvement)
-  - Relative magnitude (where applicable)
-- Include:
-  - Correlation / regression summary if available
-  - Statement like:
-    “Risk-adjusted outputs show similar directional trends as actual evaluation”
-- Highlight consistency across cohorts (if applicable)
+The model target is:
 
-Slide 5: Key Takeaways
-- Risk-adjusted model provides results consistent with evaluation
-- Confirms model captures true underlying risk
-- Supports use of model outputs for interpreting program performance
-- Risk adjustment is important when baseline populations differ
+```text
+30-day readmission after inpatient discharge
+```
 
-Requirements:
-- Keep slides concise and executive-friendly
-- Use bullet points only (no long paragraphs)
-- Focus on interpretation, not formulas
-- Avoid over-emphasis on proxy/early signal use case
-- Tone: validation-focused, clear, and confident
+The index date is:
 
-Optional:
-- Suggest a simple comparison visual (Actual vs Risk-Adjusted impact side-by-side)
+```text
+Inpatient discharge date
+```
 
+Each row in the modeling dataset should represent an eligible inpatient admission/discharge.
 
+Important target-definition decisions should be documented separately, including:
 
+- Whether readmission includes all-cause readmission
+- Whether observation stays are included or excluded
+- Whether planned readmissions are excluded
+- Whether transfers are excluded
+- Whether same-day returns are included
+- Whether SNF-to-IP and IP-to-IP transitions are both included
+- Whether mortality exclusions apply
 
+For benchmarking, the denominator definition must remain consistent across years.
 
+---
 
+## 5. Feature Strategy
 
+The model uses two broad types of features:
 
+### 5.1 Member-Level / Admission-Level Risk Features
 
+These may include:
 
+- Demographics
+- Diagnosis history
+- Comorbidities
+- Prior inpatient utilization
+- Prior emergency room utilization
+- Prior SNF utilization
+- Claims-based clinical history
+- Discharge disposition
+- Length of stay
+- Admission type
+- Procedure history
+- Medication or condition indicators, if available
 
+These features should be calculated using information available before or at the index discharge date.
 
-Could you share a bit more detail on how this is actually derived?
+### 5.2 Historical Reference-Rate Features
 
-Specifically, we are trying to understand:
-	•	What inputs or data sources are used to calculate this field
-	•	Whether it is based on any predefined rules (e.g., LOS assumptions, auth duration, etc.)
-	•	How frequently this value gets updated, if at all
+The model will also use historical raw readmission rates by clinical groupings such as:
 
-Understanding this logic would really help us assess how we can best leverage this field for our RAP monitoring and modeling use cases.
+- DRG
+- Diagnosis group
+- Procedure group
+- Other clinically meaningful groupings
 
-Thanks again for your help!
+Example features:
 
+```text
+drg_prior_year_readmission_rate
+dx_group_prior_year_readmission_rate
+procedure_group_prior_year_readmission_rate
+```
 
+These are not the target itself. They are historical baseline-risk features that help the model understand that some conditions or procedures have naturally higher readmission risk.
 
+---
 
+## 6. Why Use Prior-Year Reference Rates?
 
-mI came across a column called sa_expected_discharge_dts in the SRVC authorization tables and was trying to understand how this field is populated.
+Reference-rate features must be calculated from a previous year to avoid outcome leakage.
 
-It looks like it might be coming either from the MedCompass UI (entered during auth creation) or possibly from some backend logic. Do you happen to know how this field is derived?
+For example, when training on 2023 admissions, the DRG/procedure/diagnosis-group reference rates should come from 2022.
 
-If you’re not the right person for this, could you please point me to someone who might have more context on it? We think this field could be useful for some of our analysis.
+Why?
 
-Thanks for your help!
+If we use 2023 readmission rates as features while training on 2023 admissions, each admissionâs own outcome may indirectly contribute to the feature value. This creates leakage.
 
+Bad design:
 
+```text
+Training cohort: 2023 admissions
+Reference rates: 2023 DRG readmission rates
+```
 
+This is risky because 2023 outcomes are being used to create features for 2023 training rows.
 
+Preferred design:
 
+```text
+Training cohort: 2023 admissions
+Reference rates: 2022 DRG readmission rates
+```
 
-SLIDE: ER Diversion Program – Member Status Definitions
+This better mimics real-world prospective scoring because only prior information is used.
 
-Identified
-• Members meeting program eligibility criteria
-• ≥4 ER visits in the prior 6 months based on operational identification logic
+---
 
-Targeted
-• Identified members selected for outreach by care management
-• Operationally, most identified members are recorded as targeted in the system
+## 7. Yearly Training and Scoring Framework
 
-Engaged
-• Members successfully contacted and enrolled in the ER Diversion program
-• Receive care management support aimed at reducing avoidable ER utilization
+The framework uses a rolling-year design.
 
-Program Funnel
-Identified → Targeted → Engaged
+Rule:
 
-Key Consideration
-• Engagement rates may be limited due to care management capacity constraints
+> For a model trained on year Y, use reference-rate features from year Y-1. Use the trained model and calibration from year Y to score year Y+1.
 
+Final recommended table:
 
+| Scoring Year | Score Cohort | Model Trained On | Reference Rates Used as Features | Calibration Used | Output |
+|---|---:|---:|---:|---|---|
+| 2024 | 2024 admissions | 2023 | 2022 | 2023 OOF isotonic | Expected 2024 readmission probability |
+| 2025 | 2025 admissions | 2024 | 2023 | 2024 OOF isotonic | Expected 2025 readmission probability |
+| 2026 | 2026 admissions | 2025 | 2024 | 2025 OOF isotonic | Expected 2026 readmission probability |
+| 2027 | 2027 admissions | 2026 | 2025 | 2026 OOF isotonic | Expected 2027 readmission probability |
 
+Example for 2026 scoring:
 
+```text
+Score cohort: 2026 admissions
+Model: trained on 2025 admissions
+Reference-rate features: calculated from 2024 data
+Calibration: isotonic calibrator fitted using 2025 out-of-fold predictions
+Final output: calibrated expected 30-day readmission probability
+```
 
+---
 
-mSLIDE: Evaluation Design
+## 8. Why Calibration Is Needed
 
-Objective
-• Evaluate impact of ER Diversion program on ER visits, IP admissions, and total medical costs
+Machine learning models such as XGBoost often rank members well but may not produce accurate probabilities.
 
-Primary Analysis – Effect of Engagement
-• Treatment: Members targeted and engaged in ER Diversion program
-• Control: Members targeted but not engaged
-• Method: Propensity Score Matching + Difference-in-Difference (DiD)
-• Rationale: Estimate impact of actual program engagement
+Example:
 
-Secondary Analysis – Population Level Impact
-• Treatment: All targeted members
-• Control: National high ER utilization cohort (≥4 ER visits)
-• Method: Difference-in-Difference (DiD)
-• Rationale: Evaluate overall program impact under real-world operational constraints
+| Raw Model Score | Actual Readmission Rate |
+|---:|---:|
+| 0.80 | 0.32 |
+| 0.60 | 0.21 |
+| 0.40 | 0.12 |
 
-Study Windows
-• Index date: Program targeting date
-• Baseline period: 6 months prior
-• Follow-up period: 6 months post
+A raw model score of 0.80 does not necessarily mean the true probability is 80%.
 
-Outcomes Evaluated
-• ER Visits (PMPM)
-• IP Admissions (PMPM)
-• Total Medical Costs (PMPM)
+For facility benchmarking, this is a major issue because expected readmissions are calculated as the sum of probabilities.
 
-⸻
+```text
+Expected readmissions = sum(predicted probabilities)
+```
 
-SLIDE: Evaluation Considerations / Operational Constraints
+If predicted probabilities are too high or too low, then:
 
-Program Operations
-• Low engagement rate due to care management capacity constraints
-• Targeting workflow not fully tracked, limiting evaluation of outreach effectiveness
-• Overlap with other care management programs may influence utilization
+- Expected counts will be wrong
+- Expected rates will be wrong
+- O/E ratios will be wrong
+- Facility rankings may be misleading
 
-Data & Sample Size
-• Small engaged cohort limits statistical power
-• Power analysis indicates study may be underpowered
-• Short follow-up window (6 months) may not capture longer-term impact
+Calibration converts raw model scores into better estimated probabilities.
 
-Methodological Considerations
-• Parallel trends assumption may not fully hold
-• Potential residual confounding despite matching
-• Selection bias possible between engaged vs non-engaged members
+---
 
-Interpretation
-• Results should be interpreted as preliminary evidence, not definitive program impact
+## 9. Isotonic Regression Calibration
 
+The planned calibration method is **isotonic regression**.
 
+Isotonic regression learns a monotonic mapping:
 
+```text
+raw model score -> calibrated probability
+```
 
+It preserves the ordering of risk while correcting the probability scale.
 
+Example mapping:
 
+| Raw Score | Calibrated Probability |
+|---:|---:|
+| 0.90 | 0.42 |
+| 0.75 | 0.30 |
+| 0.50 | 0.16 |
+| 0.25 | 0.06 |
 
+This is useful because facility benchmarking requires probability accuracy, not just ranking accuracy.
 
+---
 
+## 10. Why Out-of-Fold Calibration Is Needed
 
-import pandas as pd
-import matplotlib.pyplot as plt
+Calibration should not be fitted using predictions from a model that was trained on the same rows.
 
-# Extract SMD values
-raw = psm.tableone_raw[['variable_short','SMD']].rename(columns={'SMD':'SMD_raw'})
-matched = psm.tableone_matched[['variable_short','SMD']].rename(columns={'SMD':'SMD_matched'})
+Bad design:
 
-# Merge
-df_plot = raw.merge(matched, on='variable_short')
+```text
+Train model on all 2023 admissions
+Predict on same 2023 admissions
+Fit isotonic calibrator using those same predictions
+```
 
-# Sort by largest imbalance before matching
-df_plot = df_plot.sort_values('SMD_raw', ascending=False)
+This can produce overly optimistic predictions because the model has already seen those rows.
 
-# Keep top 25 variables
-df_plot = df_plot.head(25).reset_index(drop=True)
+Preferred design:
 
-# Plot
-plt.figure(figsize=(6,6))   # smaller vertical height
+```text
+Generate out-of-fold predictions
+Fit isotonic calibrator on those out-of-fold predictions
+```
 
-y_pos = range(len(df_plot))
+Out-of-fold predictions mean each admission is predicted by a model that did not train on that admission.
 
-# Raw points
-plt.scatter(df_plot['SMD_raw'], y_pos,
-            color='red', s=25, label='Raw')
+This better simulates production scoring.
 
-# Matched points
-plt.scatter(df_plot['SMD_matched'], y_pos,
-            color='blue', marker='^', s=30, label='Matched')
+---
 
-# Labels
-plt.yticks(y_pos, df_plot['variable_short'], fontsize=6)
+## 11. Quarterly 4-Fold Out-of-Fold Calibration Design
 
-# Balance line
-plt.axvline(0.1, linestyle='--', color='black', linewidth=1)
+For each training year, use four quarter-based folds.
 
-plt.xlabel('Absolute Mean Standardized Difference (SMD)', fontsize=8)
-plt.title("Love Plot ('treatment_grp' = 0 vs 1)", fontsize=10)
+Example for 2023:
 
-plt.xlim(0,0.5)
+| Fold | Train Temporary Model On | Predict On |
+|---|---|---|
+| Fold 1 | Q2-Q4 2023 | Q1 2023 |
+| Fold 2 | Q1, Q3, Q4 2023 | Q2 2023 |
+| Fold 3 | Q1, Q2, Q4 2023 | Q3 2023 |
+| Fold 4 | Q1-Q3 2023 | Q4 2023 |
 
-plt.legend(fontsize=7)
+This creates one out-of-fold prediction for every 2023 admission.
 
-plt.tight_layout(pad=0.5)
+Final OOF calibration dataset:
 
-plt.show()
+| admission_id | discharge_quarter | raw_oof_prediction | actual_30_day_readmission |
+|---|---|---:|---:|
+| A | Q1 | 0.34 | 1 |
+| B | Q2 | 0.12 | 0 |
+| C | Q3 | 0.28 | 0 |
+| D | Q4 | 0.47 | 1 |
 
+Then fit isotonic regression:
 
+```text
+isotonic_2023.fit(raw_oof_prediction, actual_30_day_readmission)
+```
 
-import pandas as pd
-import matplotlib.pyplot as plt
+This creates one final calibration object:
 
-# --- Extract SMD values ---
-raw = psm.tableone_raw[['variable_short','SMD']].rename(columns={'SMD':'SMD_raw'})
-matched = psm.tableone_matched[['variable_short','SMD']].rename(columns={'SMD':'SMD_matched'})
+```text
+isotonic_2023
+```
 
-# --- Merge ---
-df_plot = raw.merge(matched, on='variable_short')
+---
 
-# --- Sort by highest imbalance before matching ---
-df_plot = df_plot.sort_values('SMD_raw', ascending=False)
+## 12. Temporary Fold Models vs Final Production Model
 
-# --- Keep top 25 variables ---
-df_plot = df_plot.head(25).reset_index(drop=True)
+For each training year, the pipeline creates:
 
-# --- Plot ---
-plt.figure(figsize=(7,8))   # smaller height = squeezed plot
+### Temporary fold models
 
-y_pos = range(len(df_plot))
+These are used only to generate OOF predictions for calibration.
 
-# improvement lines
-for i,row in df_plot.iterrows():
-    plt.plot([row['SMD_raw'], row['SMD_matched']], [i,i],
-             color='gray', linewidth=0.8)
+Example for 2023:
 
-# raw
-plt.scatter(df_plot['SMD_raw'], y_pos,
-            color='red', s=40, label='Raw')
+```text
+fold_model_2023_q1
+fold_model_2023_q2
+fold_model_2023_q3
+fold_model_2023_q4
+```
 
-# matched
-plt.scatter(df_plot['SMD_matched'], y_pos,
-            color='blue', marker='^', s=45, label='Matched')
+These models are not used for final scoring.
 
-# labels
-plt.yticks(y_pos, df_plot['variable_short'], fontsize=7)
+### Final production model
 
-# vertical balance line
-plt.axvline(0.1, linestyle='--', color='black')
+After OOF predictions and calibration are created, train one final model on all training-year data.
 
-plt.xlabel('Absolute Mean Standardized Difference (SMD)')
-plt.title("Love Plot ('treatment_grp' = 0 vs 1)")
+Example:
 
-plt.xlim(0,0.5)
+```text
+final_model_2023 = train on all 2023 admissions
+```
 
-plt.legend()
+Final 2024 scoring uses:
 
-plt.tight_layout()
-plt.show()
+```text
+final_model_2023 + isotonic_2023
+```
 
+---
 
+## 13. Example: 2024 Scoring
 
-import pandas as pd
-import matplotlib.pyplot as plt
+To score 2024 admissions:
 
-# --- Extract SMD values ---
-raw = psm.tableone_raw[['variable_short','SMD']].rename(columns={'SMD':'SMD_raw'})
-matched = psm.tableone_matched[['variable_short','SMD']].rename(columns={'SMD':'SMD_matched'})
+### Step 1: Build 2022 reference rates
 
-# --- Merge raw and matched tables ---
-df_plot = raw.merge(matched, on='variable_short')
+Calculate raw readmission rates from 2022 by:
 
-# --- Sort by highest imbalance BEFORE matching ---
-df_plot = df_plot.sort_values('SMD_raw', ascending=False)
+- DRG
+- diagnosis group
+- procedure group
+- other selected clinical groupings
 
-# --- Select top variables (avoid crowded plot) ---
-df_plot = df_plot.head(15)
+These become features for 2023 training and 2024 scoring.
 
-# --- Reset index for plotting ---
-df_plot = df_plot.reset_index(drop=True)
+### Step 2: Train temporary fold models on 2023
 
-# --- Plot ---
-plt.figure(figsize=(10,12))
+Use quarter-based 4-fold training to generate OOF predictions for all 2023 admissions.
 
-y_pos = range(len(df_plot))
+### Step 3: Fit isotonic calibrator
 
-# draw lines showing improvement
-for i,row in df_plot.iterrows():
-    plt.plot([row['SMD_raw'], row['SMD_matched']], [i,i], color='gray', linewidth=1)
+Fit:
 
-# raw points
-plt.scatter(df_plot['SMD_raw'], y_pos,
-            color='red', s=70, label='Before Matching')
+```text
+isotonic_2023.fit(oof_predictions_2023, actual_readmissions_2023)
+```
 
-# matched points
-plt.scatter(df_plot['SMD_matched'], y_pos,
-            color='blue', marker='^', s=80, label='After Matching')
+### Step 4: Train final model on all 2023
 
-# labels
-plt.yticks(y_pos, df_plot['variable_short'], fontsize=9)
+Fit:
 
-# balance reference lines
-plt.axvline(0.05, linestyle=':', color='gray')
-plt.axvline(0.1, linestyle='--', color='black')
+```text
+final_model_2023.fit(all_2023_training_data)
+```
 
-plt.xlabel('Absolute Standardized Mean Difference (SMD)')
-plt.title('Covariate Balance Before and After Matching')
+### Step 5: Score 2024 admissions
 
-plt.xlim(0,0.25)
+For each 2024 admission:
 
-plt.legend()
+```text
+raw_score = final_model_2023.predict_proba(2024_features)
+expected_probability = isotonic_2023.transform(raw_score)
+```
 
-plt.tight_layout()
-plt.show()
+The expected_probability is the final expected 30-day readmission probability.
 
+---
 
+## 14. Facility-Level Aggregation
 
+Once every admission has a calibrated expected probability, aggregate to facility level.
 
+For each facility:
 
+```text
+expected_readmissions = sum(expected_probability)
+observed_readmissions = sum(actual_30_day_readmission)
+index_admissions = count(eligible_admissions)
+```
 
-Primary Method
+Then:
 
-Propensity Score Matching + Difference-in-Difference (DiD)
-Members in the program were matched to similar comparison members based on baseline characteristics.
-A Difference-in-Difference framework was then used to compare changes in utilization between groups.
+```text
+expected_rate = expected_readmissions / index_admissions
+observed_rate = observed_readmissions / index_admissions
+OE_ratio = observed_readmissions / expected_readmissions
+```
 
-Sensitivity Analyses
+Example:
 
-• Propensity Score Overlap Weighting + DiD
-• Propensity Score Inverse Probability Weighting (IPW)
+| Metric | Value |
+|---|---:|
+| Eligible index admissions | 1,000 |
+| Observed readmissions | 140 |
+| Sum of expected probabilities | 120 |
+| Observed rate | 14.0% |
+| Expected rate | 12.0% |
+| O/E ratio | 1.17 |
 
-These approaches test robustness of results across different adjustment methods.
+Interpretation:
 
+```text
+The facility had 17% more readmissions than expected after risk adjustment.
+```
 
+---
 
+## 15. Data Leakage Controls
 
+Avoiding leakage is critical for benchmarking credibility.
 
+### 15.1 Do not use same-year reference rates for training
 
-Slide 1 — ER Diversion Program Overview Initiative - Reduce avoidable ER
-utilization by providing care managers with insights on drivers of ER
-use and enabling redirection to alternate care settings.
+Bad:
 
-Program - Pilot targeting Medicare and DSNP members in the Great Lakes
-market (Northern IL, Michigan, Indianapolis, Wisconsin).
+```text
+Training year: 2023
+Reference rates: 2023
+```
 
-Evaluation Strategy Primary Analysis (Effect of Engagement) - Treatment:
-Targeted AND Engaged members - Control: Targeted but NOT Engaged members
+Good:
 
-Secondary Analysis (Intent‑to‑Treat) - Treatment: All targeted members -
-Control: National Medicare random sample with ER >4 in the past 6 months
+```text
+Training year: 2023
+Reference rates: 2022
+```
 
-Outcomes - Primary: ER Visits - Secondary: IP Admissions, Total Medical
-Cost
+### 15.2 Do not calibrate on in-sample predictions
 
-Slide 2 — Evaluation Design and Statistical Approach Population -
-Medicare members targeted for ER Diversion Program.
+Bad:
 
-Timeframe - Program period: July 2023 – April 2025 - Baseline period: 6
-months prior to engagement - Follow‑up period: 6 months after engagement
+```text
+Train model on all 2023
+Predict all 2023
+Fit isotonic on those predictions
+```
 
-Statistical Approach - Propensity score weighting to balance baseline
-characteristics - Difference‑in‑Difference (DiD) estimation to measure
-program impact - Adjustment for demographics, utilization patterns, and
-clinical risk scores
+Good:
 
-Slide 3 — Program Operational Reality Action Title: Targeting was broad
-but engagement was capacity constrained
+```text
+Generate 2023 OOF predictions
+Fit isotonic on OOF predictions
+```
 
--   Total members identified for ER Diversion: 21,705
--   All identified members were operationally marked as “targeted”
--   Engagement was limited to 3.3% due to care manager capacity
-    constraints
+### 15.3 Do not use future outcome information
 
-Breakdown - Targeted and Engaged: 737 members (3.3%) - Targeted but Not
-Engaged: 20,968 members (96.7%)
+For 2024 scoring, do not use 2024 outcomes to build 2024 expected probabilities.
 
-Implication - Very small engagement rate means ITT analysis may dilute
-measurable program impact.
+For 2026 live scoring, do not use 2026 readmission outcomes because they are not fully known yet.
 
-Slide 4 — Eligibility Definition Changes in Retrospective Claims Action
-Title: Retrospective claims show only 65% of engaged members meet ER>4
-criteria
+### 15.4 Use only features available at discharge
 
-Operational Eligibility - ER >4 visits in past 6 months at time of
-identification using near‑real‑time claims.
+Any feature used for an index admission should be available on or before the discharge date.
 
-Retrospective Claims View - Only 65% of engaged members meet ER >4
-criteria using adjudicated claims.
+Avoid features that accidentally include post-discharge events within the 30-day outcome window.
 
-Reason - Differences between operational claims feeds and finalized
-adjudicated claims data.
+### 15.5 Be careful with facility-level features
 
-Adjustment - Treatment cohort restricted to members with ER >4 using
-adjudicated claims to align with control definition.
+If the goal is facility benchmarking, avoid using facility ID or facility historical readmission rate as a direct model feature unless explicitly justified.
 
-Slide 5 — Baseline Characteristics Differ Between Groups Action Title:
-Treatment and control groups differ substantially before adjustment
+Reason:
 
-Observations - Significant baseline differences across multiple
-utilization and risk variables. - Standardized Mean Differences
-(SMD) >0.1 observed in several variables.
+The model may adjust away the facility effect you are trying to measure.
 
-Examples of imbalance - PCP visit utilization - Care management
-engagement overlap - Risk scores - Chronic condition counts
+For benchmarking, the model should primarily adjust for patient clinical risk, not excuse facility-level performance differences.
 
-Implication - Statistical adjustment is required to reduce confounding
-bias.
+---
 
-Slide 6 — Covariate Balance After Adjustment Action Title: Propensity
-score weighting substantially improves balance
+## 16. Handling Sparse Reference-Rate Groups
 
-Approach - Propensity score matching and weighting applied. - Exact
-matching on selected temporal features.
+Raw DRG/procedure/diagnosis rates can be unstable for low-volume groups.
 
-Results - Standardized Mean Differences reduced below 0.1 across most
-covariates. - Treatment and control groups become more comparable.
+Example:
 
-Implication - Adjusted cohorts provide a more valid comparison for
-causal impact estimation.
+```text
+1 readmission out of 2 admissions = 50% raw rate
+```
 
-Slide 7 — Impact Analysis Results Action Title: No statistically
-significant reduction observed in ER utilization
+This may be too noisy.
 
-Method - Difference‑in‑Difference with IPW adjustment.
+Recommended approach:
 
-Results ER Visits - Slight reduction observed but not statistically
-significant.
+- Apply minimum volume thresholds
+- Use hierarchical fallback logic
+- Use smoothing/shrinkage toward the global rate
 
-IP Admissions - Small increase observed but not statistically
-significant.
+Example shrinkage formula:
 
-Total Medical Cost - Directionally lower but not statistically
-significant.
+```text
+smoothed_rate = (group_readmits + k * global_rate) / (group_admissions + k)
+```
 
-Conclusion - No statistically significant evidence of impact detected in
-current analysis.
+Where:
 
-Slide 8 — Parallel Trends Assumption Check Action Title: Parallel trends
-assumption may be violated
+- group_readmits = readmissions in the DRG/procedure/dx group
+- group_admissions = eligible admissions in that group
+- global_rate = overall readmission rate
+- k = smoothing strength
 
-Observation - Pre‑intervention ER visit trends differ between treatment
-and control groups.
+If group volume is very small, use a broader grouping fallback.
 
-Evidence - Treatment group slope differs significantly from control
-group slope in pre‑period.
+Example fallback hierarchy:
 
-Implication - Violation of parallel trends may bias DiD estimates.
+```text
+DRG -> diagnosis category -> service line -> global rate
+```
 
-Interpretation - Results should be interpreted cautiously due to this
-limitation.
+---
 
-Slide 9 — Study Power Assessment Action Title: Current study is severely
-underpowered to detect expected effects
+## 17. Recommended Artifact Versioning
 
-Sample Sizes - Treatment: ~477 members - Control: ~2,371 members
+For each scoring year, save all artifacts needed to reproduce scores.
 
-Estimated Study Power - Approximately 6% power to detect meaningful
-program effects.
+Example for 2024 scoring:
 
-Detectable Effect Size - Study can only detect very large changes (~29%
-reduction in ER visits).
+```text
+final_model_2023.pkl
+isotonic_2023.pkl
+reference_rates_2022.parquet
+feature_logic_v2023.sql
+cohort_definition_v2023.md
+model_config_v2023.json
+```
 
-Implication - The study is unlikely to detect modest but meaningful
-program impacts.
+Example for 2026 scoring:
 
+```text
+final_model_2025.pkl
+isotonic_2025.pkl
+reference_rates_2024.parquet
+feature_logic_v2025.sql
+cohort_definition_v2025.md
+model_config_v2025.json
+```
 
-Slide 10
+This is important because facility benchmarking reports must be reproducible.
 
-Key Evaluation Constraints Affecting Results
+If model artifacts are overwritten, historical expected rates may shift unexpectedly.
 
-Action Title:
-Program operational constraints limit measurable impact
+---
 
-Key Constraints
+## 18. Prospective vs Retrospective Modes
 
-1. Very Low Engagement Rate
-	•	Only 3.3% of targeted members were engaged
-	•	Engagement limited due to single care manager capacity
+There are two possible modes.
 
-2. Operational vs Retrospective Eligibility Differences
-	•	Operational targeting used near-real-time claims
-	•	Retrospective adjudicated claims show only 65% met ER>4 criteria
+### 18.1 Production Prospective Mode
 
-3. Parallel Trends Assumption Not Fully Satisfied
-	•	Pre-intervention ER trends differ between treatment and control groups
+This is the preferred mode for official benchmarking.
 
-4. Limited Statistical Power
-	•	Current sample size provides ~6% power
-	•	Detectable effect size (~29% ER reduction) is much larger than expected program impact
+For 2026 scoring, use:
 
-Takeaway
+```text
+final_model_2025
+isotonic_2025
+reference_rates_2024
+```
 
-Current evaluation framework faces structural limitations that reduce the ability to detect program impact.
+This reflects what was available before or during 2026 scoring.
 
-⸻
+### 18.2 Retrospective Research Mode
 
-Slide 11
+After 2026 outcomes fully mature, analysts may build a 2026-trained model and 2026 calibration object.
 
-What We Can and Cannot Conclude
+That can be useful for research, validation, or future model development.
 
-Action Title:
-Current results should be interpreted cautiously
+However, retrospective models should not overwrite the original production expected probabilities used for official 2026 benchmarking.
 
-What We Can Conclude
-	•	No statistically significant change in ER utilization, IP admissions, or medical costs detected
-	•	Engagement cohort analysis suggests directionally lower ER utilization, but not statistically significant
-	•	Baseline differences between groups were successfully reduced using weighting
+---
 
-⸻
+## 19. Recommended Implementation Logic
 
-What We Cannot Conclude
-	•	Cannot definitively determine program effectiveness
-	•	Small engagement cohort limits statistical power
-	•	Parallel trend violation introduces causal inference limitations
+For each training year Y:
 
-⸻
+1. Build training cohort from year Y admissions.
+2. Build reference-rate features from year Y-1.
+3. Create 4 quarter-based folds within year Y.
+4. For each fold:
+   - Train temporary model on other three quarters.
+   - Predict raw probabilities on held-out quarter.
+5. Combine all held-out predictions into one OOF prediction table.
+6. Fit isotonic regression using OOF predictions and actual outcomes.
+7. Train final production model on all year Y admissions.
+8. Save final model, isotonic calibrator, reference tables, and feature logic.
+9. Score year Y+1 admissions.
+10. Apply isotonic calibration to raw predictions.
+11. Aggregate expected probabilities to facility level.
+12. Calculate observed rate, expected rate, and O/E ratio once outcomes mature.
 
-Interpretation
+---
 
-Lack of statistical significance may reflect data and evaluation limitations rather than absence of program impact
+## 20. Pseudocode
 
-⸻
+```python
+for training_year in [2023, 2024, 2025, 2026]:
+    scoring_year = training_year + 1
+    reference_year = training_year - 1
 
-Slide 12
+    # 1. Build reference-rate features
+    reference_rates = build_reference_rates(reference_year)
 
-Recommendations for Future Evaluation
+    # 2. Build training data
+    train_df = build_training_dataset(
+        admission_year=training_year,
+        reference_rates=reference_rates
+    )
 
-Action Title:
-Improving program evaluation and impact measurement
+    # 3. Generate OOF predictions by quarter
+    oof_predictions = []
 
-Program Operations
-	•	Expand care manager capacity to increase engagement rates
-	•	Target members earlier in risk trajectory
+    for holdout_quarter in [1, 2, 3, 4]:
+        fold_train = train_df[train_df.quarter != holdout_quarter]
+        fold_holdout = train_df[train_df.quarter == holdout_quarter]
 
-⸻
+        fold_model = train_model(fold_train)
+        fold_pred = fold_model.predict_proba(fold_holdout[features])[:, 1]
 
-Data Improvements
-	•	Align operational eligibility logic with retrospective claims definitions
-	•	Track member-level outreach and engagement timestamps more consistently
+        oof_predictions.append({
+            "admission_id": fold_holdout.admission_id,
+            "raw_pred": fold_pred,
+            "actual": fold_holdout.readmit_30_day
+        })
 
-⸻
+    oof_df = concatenate(oof_predictions)
 
-Evaluation Improvements
-	•	Consider prospective evaluation design
-	•	Implement randomized or phased rollout where feasible
-	•	Increase sample size to improve statistical power
+    # 4. Fit isotonic calibrator
+    isotonic = fit_isotonic(
+        x=oof_df.raw_pred,
+        y=oof_df.actual
+    )
 
-⸻
+    # 5. Train final production model on all training-year data
+    final_model = train_model(train_df)
 
-Next Steps
-	•	Continue monitoring outcomes as program scales
-	•	Re-evaluate impact once larger engagement cohort becomes available
+    # 6. Save artifacts
+    save(final_model, f"final_model_{training_year}.pkl")
+    save(isotonic, f"isotonic_{training_year}.pkl")
+    save(reference_rates, f"reference_rates_{reference_year}.parquet")
 
-⸻
+    # 7. Score next year
+    score_df = build_scoring_dataset(
+        admission_year=scoring_year,
+        reference_rates=reference_rates
+    )
 
-Important Tip for Your Presentation
+    raw_score = final_model.predict_proba(score_df[features])[:, 1]
+    calibrated_score = isotonic.transform(raw_score)
 
-Your closing narrative should be this:
+    score_df["expected_readmission_probability"] = calibrated_score
 
-The evaluation did not detect statistically significant impact, but this result is primarily driven by program operational constraints, small engagement cohorts, and data limitations rather than conclusive evidence of program ineffectiveness.
+    save(score_df, f"expected_scores_{scoring_year}.parquet")
+```
 
+---
+
+## 21. Validation Checks
+
+For each scoring year, evaluate:
+
+### 21.1 Admission-level model performance
+
+- AUC / C-statistic
+- Average precision
+- Brier score
+- Calibration intercept
+- Calibration slope
+- Calibration plot
+- Decile observed vs expected rates
+
+### 21.2 Facility-level benchmarking stability
+
+- Facility observed vs expected scatterplot
+- O/E ratio distribution
+- Confidence intervals around O/E
+- Minimum volume thresholds
+- Year-over-year facility rank stability
+- Sensitivity to small facilities
+
+### 21.3 Calibration quality
+
+For deciles of calibrated risk:
+
+```text
+mean predicted probability vs actual readmission rate
+```
+
+The closer these are, the better the expected counts will be.
+
+---
+
+## 22. Important Design Decision: Facility Features
+
+Because the goal is facility benchmarking, be cautious about including facility-level historical performance as a feature.
+
+If we include facility ID or facility historical readmission rate, the model may learn that some facilities are historically high-risk and assign them higher expected rates. This can reduce their O/E ratio and make poor performance appear expected.
+
+This may be acceptable for forecasting but can be problematic for accountability benchmarking.
+
+Recommended default:
+
+```text
+Do not include facility ID or facility historical readmission rate in the core benchmarking model.
+```
+
+Instead, adjust primarily for patient clinical risk and admission characteristics.
+
+---
+
+## 23. Final Summary
+
+We are building a rolling yearly risk-adjusted readmission benchmarking framework.
+
+The model predicts 30-day readmission risk at the inpatient admission/discharge level.
+
+For each scoring year:
+
+- Train the model on the prior year.
+- Use reference-rate features from one year before the training year.
+- Use quarter-based OOF predictions from the training year to fit isotonic calibration.
+- Train one final model on the full training year.
+- Score the next year using the final model and final isotonic calibrator.
+- Aggregate calibrated probabilities to facility level.
+- Compare observed vs expected readmissions.
+
+The core design principles are:
+
+1. Avoid future data leakage.
+2. Use prior-year reference rates.
+3. Use OOF predictions for calibration.
+4. Calibrate probabilities because expected counts depend on probability accuracy.
+5. Save yearly frozen artifacts for reproducibility.
+6. Aggregate member/admission-level expected probabilities to facility-level expected rates.
+
+The final expected probability for an admission is:
+
+```text
+expected_probability = isotonic_Y(final_model_Y.predict_proba(features_with_reference_rates_Y_minus_1))
+```
+
+Where:
+
+- Y = training year
+- Y + 1 = scoring year
+- Y - 1 = reference-rate year
+
+Example for 2026:
+
+```text
+expected_probability_2026 = isotonic_2025(final_model_2025.predict_proba(features_using_2024_reference_rates))
+```
+
+This gives a leakage-aware, calibrated, reproducible expected readmission probability suitable for facility benchmarking.
