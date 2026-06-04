@@ -1,3 +1,689 @@
+RAP Acute + SNF Prioritization Simulator
+
+Project Context and Agent Handoff
+
+⸻
+
+Overview
+
+This project is being developed for the Medicare Readmission Avoidance Program (RAP) at Aetna/CVS Health.
+
+The objective is to build a simulation tool that estimates the operational and financial impact of changing Acute RAP and SNF RAP prioritization strategies.
+
+The simulator will help leadership evaluate tradeoffs between:
+
+* Acute RAP volume
+* SNF RAP volume
+* SHJ release volume
+* Care Management capacity
+* Member engagement
+* Expected readmission reduction
+* Estimated savings / ROI
+
+The final deliverable should be a local standalone simulator that can be opened directly in a browser without requiring any web server.
+
+⸻
+
+Current RAP Programs
+
+Acute RAP
+
+The Acute RAP model is triggered whenever an Acute Inpatient authorization is received.
+
+Current identification logic:
+
+identified_flag = (
+    rap_score >= acute_threshold
+) & (
+    days_since_discharge.between(0, 4)
+)
+
+Current threshold is approximately:
+
+12.5%
+
+This identifies roughly the top 30% highest-risk members.
+
+⸻
+
+SNF RAP
+
+The SNF RAP model is triggered whenever a Skilled Nursing Facility (SNF) authorization is received.
+
+Current identification logic:
+
+identified_flag = (
+    snf_rap_score >= snf_threshold
+) & (
+    days_since_discharge.between(0, 4)
+)
+
+Current threshold is approximately:
+
+12.5%
+
+This identifies approximately 5-7% of SNF members.
+
+⸻
+
+Business Problem
+
+Both RAP programs can identify the same member.
+
+Example:
+
+March 1
+Member admitted to Acute Inpatient
+March 15
+Discharged
+March 16
+Acute RAP identifies member
+April 1
+Member admitted to SNF
+April 15
+Discharged
+April 16
+SNF RAP identifies member
+
+However, if an active RAP outreach/program card already exists from the Acute RAP identification, then the SNF identification may not create a new outreach opportunity.
+
+Therefore:
+
+Gross Identifications
+≠
+Net New Opportunities
+
+The simulator must account for this overlap.
+
+⸻
+
+Leadership Question
+
+Leadership wants to understand:
+
+What happens to volume, case mix, engagement, and savings if we prioritize more SNF cases versus Acute cases?
+
+Examples:
+
+* Lower Acute threshold
+* Lower SNF threshold
+* Prioritize SNF cases in SHJ
+* Reserve a minimum number of SNF cases each month
+* Change case mix without increasing overall volume
+
+⸻
+
+Operational Workflow
+
+The RAP team only performs identification.
+
+The actual workflow is:
+
+Model Scored Population
+        ↓
+Identification Logic Applied
+        ↓
+Cases Sent To SHJ / CEC
+        ↓
+SHJ Inclusion & Exclusion Rules
+        ↓
+Released To MedCompass
+        ↓
+Care Manager Capacity
+        ↓
+Targeted
+        ↓
+Engaged
+
+⸻
+
+SHJ Responsibilities
+
+SHJ performs operational processing.
+
+Examples:
+
+Exclusions
+
+* NME exclusions
+* Contract exclusions
+* Other operational exclusions
+
+Inclusions
+
+* Member eligibility
+* Program eligibility
+* Other operational checks
+
+SHJ determines which cases are ultimately released to MedCompass.
+
+⸻
+
+Care Management Process
+
+Released cases are sent to MedCompass.
+
+Care Managers pick cases based on capacity.
+
+Important:
+
+Released
+≠
+Targeted
+
+and
+
+Targeted
+≠
+Engaged
+
+Cases can remain available and be released again on subsequent days if capacity was unavailable.
+
+⸻
+
+Available Data Sources
+
+1. Acute RAP Scored Population
+
+Required fields:
+
+member_id
+admission_id
+admit_dt
+discharge_dt
+score_dt
+rap_score
+days_since_discharge
+readmit_30d_flag
+
+⸻
+
+2. SNF RAP Scored Population
+
+Required fields:
+
+member_id
+admission_id
+admit_dt
+discharge_dt
+score_dt
+rap_score
+days_since_discharge
+readmit_30d_flag
+
+⸻
+
+3. SHJ / CEC Identification Table
+
+This table records members identified by RAP and sent to SHJ.
+
+Required fields:
+
+member_id
+event_id
+identified_dt
+program_type
+source_model
+sent_to_shj_flag
+shj_eligible_flag
+released_to_medcompass_flag
+release_dt
+
+⸻
+
+4. MedCompass Program Card Table
+
+Required fields:
+
+member_id
+program_card_id
+program_type
+program_start_dt
+program_end_dt
+targeted_flag
+engaged_flag
+engaged_dt
+
+⸻
+
+5. Readmission Outcome Table
+
+Required fields:
+
+member_id
+event_id
+index_discharge_dt
+readmit_30d_flag
+readmit_dt
+
+⸻
+
+SHJ Data Limitation
+
+SHJ launched during mid-2025.
+
+Therefore:
+
+Full-year SHJ history is unavailable.
+
+Only Q3-Q4 2025 are considered clean and stable.
+
+⸻
+
+Recommended Approach
+
+Q3-Q4 2025
+
+Use actual SHJ outcomes.
+
+Observed Data
+
+⸻
+
+Jan-Jun 2025
+
+Apply assumptions learned from Q3-Q4.
+
+Estimated Data
+
+⸻
+
+Cohort Construction
+
+Build one master scored cohort:
+
+acute_scored_2025
+UNION ALL
+snf_scored_2025
+
+Required standardized fields:
+
+member_id
+event_id
+event_type
+admit_dt
+discharge_dt
+score_dt
+rap_score
+days_since_discharge
+readmit_30d_flag
+
+⸻
+
+Baseline Identification Logic
+
+Current production simulation:
+
+identified_flag = (
+    rap_score >= threshold
+) & (
+    days_since_discharge.between(0,4)
+)
+
+⸻
+
+Percentile-Based Framework
+
+Instead of hardcoded thresholds, compute percentiles.
+
+Acute:
+
+acute_percentile
+
+SNF:
+
+snf_percentile
+
+This allows simulation of:
+
+Top 20%
+Top 25%
+Top 30%
+Top 35%
+Top 40%
+
+without recalculating thresholds.
+
+⸻
+
+Overlap Suppression Logic
+
+One of the most important components.
+
+Members may appear in both Acute and SNF RAP.
+
+Create episode logic:
+
+member_id
+ordered by score_dt
+
+Rule:
+
+If member already has active RAP outreach
+within prior 30 days
+→ Suppress new identification
+Else
+→ Count as net-new opportunity
+
+Output metrics:
+
+Gross Identifications
+Overlap Suppressed
+Net-New Identifications
+
+⸻
+
+SHJ Funnel Estimation
+
+Using clean Q3-Q4 data estimate:
+
+Acute Funnel:
+
+Identified
+→ SHJ Eligible
+→ Released
+→ Targeted
+→ Engaged
+
+SNF Funnel:
+
+Identified
+→ SHJ Eligible
+→ Released
+→ Targeted
+→ Engaged
+
+Estimate conversion rates separately.
+
+⸻
+
+Capacity Modeling
+
+Version 1:
+
+No explicit capacity constraints.
+
+Use observed funnel rates.
+
+⸻
+
+Version 2:
+
+Allow user input:
+
+Monthly Capacity
+Weekly Capacity
+Targeted Capacity
+Engagement Capacity
+
+Support prioritization strategies:
+
+Highest Score First
+SNF First
+Acute First
+Highest Expected Savings
+SNF Minimum Floor
+
+⸻
+
+Readmission Rate Estimation
+
+Create percentile bands:
+
+0-5%
+5-10%
+10-15%
+...
+95-100%
+
+Calculate:
+
+Observed Readmission Rate
+
+for each band.
+
+This allows cumulative risk estimation as thresholds move.
+
+⸻
+
+Savings Model
+
+Default assumptions:
+
+Intervention Effectiveness = 35%
+Savings Per Avoided Readmission = $15,000
+
+Formula:
+
+estimated_savings =
+engaged_cases
+*
+expected_readmission_rate
+*
+0.35
+*
+15000
+
+⸻
+
+Scenarios To Simulate
+
+Baseline
+
+Acute Top 30%
+SNF Top 5%
+
+⸻
+
+Scenario A
+
+Acute Top 30%
+SNF Top 10%
+
+⸻
+
+Scenario B
+
+Acute Top 25%
+SNF Top 15%
+
+⸻
+
+Scenario C
+
+Acute Top 20%
+SNF Top 20%
+
+⸻
+
+Scenario D
+
+SNF Floor Strategy
+Minimum SNF Volume Per Month
+
+⸻
+
+Scenario E
+
+SHJ Prioritizes SNF
+
+When capacity is constrained:
+
+SNF Wins
+Acute Deferred
+
+⸻
+
+Simulator Outputs
+
+For each scenario calculate:
+
+Acute Identified
+SNF Identified
+Overlap Suppressed
+Net-New Identified
+SHJ Eligible
+Released To MedCompass
+Targeted
+Engaged
+Expected Readmission Rate
+Avoided Readmissions
+Estimated Savings
+SNF Mix %
+
+Also show:
+
+Incremental Volume
+Incremental Engagement
+Incremental Savings
+Change In SNF Mix
+
+compared to baseline.
+
+⸻
+
+Recommended Technical Architecture
+
+Backend
+
+Python
+
+Responsibilities:
+
+Load Data
+Construct Cohorts
+Calculate Percentiles
+Estimate SHJ Funnel
+Run Scenario Grid
+Calculate Savings
+Export Results
+
+⸻
+
+Frontend
+
+Single standalone HTML file.
+
+No Flask.
+
+No server.
+
+No hosting.
+
+Open directly in browser:
+
+rap_prioritization_simulator.html
+
+⸻
+
+Recommended UI Controls
+
+Acute Top % Slider
+SNF Top % Slider
+Prioritization Dropdown
+SNF Floor Input
+Capacity Input
+Savings Per Readmission
+Intervention Effectiveness
+
+⸻
+
+Recommended Visuals
+
+KPI Cards
+
+Identified
+Targeted
+Engaged
+Savings
+
+⸻
+
+Funnel Chart
+
+Identified
+↓
+SHJ Eligible
+↓
+Released
+↓
+Targeted
+↓
+Engaged
+↓
+Avoided Readmissions
+↓
+Savings
+
+⸻
+
+Scenario Comparison Table
+
+Baseline versus selected scenario.
+
+⸻
+
+SNF Mix Chart
+
+SNF Mix %
+vs
+Estimated Savings
+
+⸻
+
+Key Assumptions
+
+Expose these assumptions directly in the simulator.
+
+Observed SHJ Period = Q3-Q4 2025
+Estimated Period = Jan-Jun 2025
+Intervention Effectiveness = 35%
+Savings Per Avoided Readmission = $15,000
+Overlap Window = 30 Days
+Separate Acute and SNF Funnel Rates
+
+⸻
+
+Important Caveats
+
+1. SHJ data is only mature beginning in Q3-Q4 2025.
+2. Early 2025 SHJ outcomes should be estimated.
+3. Acute and SNF overlap must be suppressed.
+4. Lower thresholds increase volume but reduce average risk.
+5. Increased identification volume does not automatically create more engagement due to SHJ and CM capacity constraints.
+6. Savings are estimated and not causal proof.
+7. Actual ROI depends on intervention effectiveness and operational execution.
+
+⸻
+
+Final Deliverable
+
+A standalone browser-based simulator:
+
+rap_prioritization_simulator.html
+
+generated by Python and capable of estimating:
+
+* Acute/SNF case mix
+* Overlap-adjusted identification volume
+* SHJ release volume
+* Targeted volume
+* Engagement volume
+* Expected readmission reduction
+* Estimated savings
+* Scenario comparison versus baseline
+
+
+
+
+
+
+
+
+
+
+
+
 # Risk-Adjusted Readmission Model: Methodology and Implementation Context
 
 ## 1. Purpose of This Document
