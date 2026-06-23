@@ -1,3 +1,26 @@
+Yiwei has been a strong manager in providing clarity and direction for the team. She communicates expectations clearly and ensures everyone understands priorities and deliverables. She does an excellent job during sprint planning and backlog grooming by organizing work effectively, prioritizing high-impact items, and helping the team stay focused on what matters most. Her structured approach to planning has improved team alignment and execution.
+
+Opportunity Area:
+One opportunity for growth could be in creating even more visibility into longer-term strategic goals and cross-team dependencies. While short-term planning and prioritization are strong, additional context on broader roadmap direction could help the team anticipate future needs, align proactively, and make more strategic decisions.
+
+
+Strength:
+Yiwei has been a strong manager in providing clarity and direction for the team. She communicates expectations clearly and ensures everyone understands priorities and deliverables. She does an excellent job during sprint planning and backlog grooming by organizing work effectively, prioritizing high-impact items, and helping the team stay focused on what matters most. She is also thoughtful about longer-term strategic goals and cross-team dependencies, often working closely with DE teams and other stakeholders to ensure alignment and smooth execution.
+
+Opportunity Area:
+As the team continues to grow, one opportunity could be to further expand delegation of strategic ownership across team leads. Creating more opportunities for leads to drive certain planning and decision-making discussions could help strengthen leadership within the team and improve scalability.
+
+This reads very strong because:
+
+* Strengths are concrete and credible.
+* Opportunity area is positive (not criticism).
+* Shows you respect her leadership while suggesting growth.
+
+
+
+
+
+
 RAP Acute + SNF Prioritization Simulator
 
 Project Context and Agent Handoff
