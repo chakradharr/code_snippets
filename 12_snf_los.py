@@ -807,3 +807,188 @@ expected_probability_2026 = isotonic_2025(final_model_2025.predict_proba(feature
 ```
 
 This gives a leakage-aware, calibrated, reproducible expected readmission probability suitable for facility benchmarking.
+
+
+-- Not formatted
+
+Internal Modeling timeline
+
+Score Year
+
+Model
+
+Calibration
+
+Reference Rates
+
+2023
+
+Train on 2022
+
+2022 OOF isotonic
+
+2022 rates
+
+2024
+
+Train on 2023
+
+2023 OOF isotonic
+
+2023 rates
+
+2025
+
+Train on 2024
+
+2024 OOF isotonic
+
+2024 rates
+
+2026
+
+Train on 2025
+
+2025 OOF isotonic
+
+2025 rates
+
+
+
+what we publish
+
+Published Year
+
+Expected Rates Generated Using
+
+2024
+
+2023 model/calibration/rates
+
+2025
+
+2024 model/calibration/rates
+
+2026
+
+2025 model/calibration/rates
+
+Current
+
+latest available model
+
+why this is good :
+
+Model trained on 2023
+Scores generated on unseen 2024 admissions
+
+Prior Year Model
+Prior Year Calibration
+Prior Year Reference Rates
+Current Year Features
+
+Using a model trained on 2023 data,
+calibrated using 2023 out-of-fold predictions,
+and applied prospectively to 2024 admissions.
+
+For each scoring year, a model trained on the prior calendar year's admissions is used to generate expected readmission probabilities.
+
+Model outputs are calibrated using isotonic regression fitted on out-of-fold predictions from the training year.
+
+Historical diagnosis, DRG, and procedure-group readmission rates from the training year are incorporated as predictive features.
+
+
+Recommended design :
+
+Step
+
+Purpose
+
+Output
+
+1. Hyperparameter tuning pipeline
+
+Find best params using FY data
+
+best params for 2023/2024/2025
+
+2. Final model pipeline
+
+Train on full FY data
+
+final_model_2023, final_model_2024, etc.
+
+3. OOF calibration pipeline
+
+Train fold models using fixed best params
+
+OOF predictions
+
+4. Isotonic calibration
+
+Fit raw OOF pred → actual
+
+isotonic_2023, isotonic_2024, etc.
+
+5. Scoring pipeline
+
+Apply final model + isotonic
+
+calibrated expected probability
+
+
+example : 
+Artifact
+
+How created
+
+best_params_2025
+
+from existing HPT pipeline
+
+final_model_2025
+
+trained on all 2025 data using best_params_2025
+
+oof_predictions_2025
+
+4 quarter-fold models using same best_params_2025
+
+isotonic_2025
+
+fitted on all 2025 OOF predictions + actuals
+
+
+then scoring 2026 : raw_score = final_model_2025.predict_proba(X_2026)
+
+expected_probability = isotonic_2025.transform(raw_Important: do not tune hyperparameters separately inside each OOF fold. That makes the calibration workflow expensive and inconsistent. Use the finalized hyperparameters from the full-year tuning process.
+
+One caveat: if your HPT selected params using all 2025 data, the OOF calibration is not perfectly nested CV. But for your production benchmarking use case, this is usually acceptable and practical. The key thing is: each OOF prediction must come from a model that did not train on that admission.
+
+So final recommendation:Existing Vertex training pipeline = final model artifact
+New calibration pipeline = fold models + OOF predictions + isotonic artifact
+Production scoring = final model + isotonic calibrator
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
