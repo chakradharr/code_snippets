@@ -1,592 +1,258 @@
-# MLOps Model Monitoring Platform - Architecture Planning Document
+Metric
 
-## Objective
+One-line meaning
 
-Design and build an internal enterprise-grade Model Monitoring Platform inspired by commercial products such as:
+🟢 Green
 
-- Arize AI
-- WhyLabs
-- Evidently AI
-- Fiddler AI
-- SageMaker Model Monitor
+🟡 Yellow
 
-The goal is **NOT** to replicate every feature of these products, but to build a lightweight, extensible monitoring platform tailored to our healthcare ML models running on Vertex AI.
+🔴 Red
 
-Current backend infrastructure already exists:
+PSI
 
-- Vertex AI Pipelines
-- BigQuery
-- GCP
+Measures how much the population has shifted between predefined bins.
 
-Frontend technology is open for experimentation (Streamlit, React, Grafana, etc.). Looker Studio is NOT an option.
+< 0.10
 
----
+0.10–0.25
 
-# Current State
+> 0.25
 
-Vertex AI monitoring pipelines already compute standard monitoring metrics.
+KS Statistic
 
-Pipelines execute on a schedule and store monitoring outputs in BigQuery.
+Measures the largest difference between the training and production cumulative distributions.
 
-Examples include:
+< 0.05
 
-- Drift metrics
-- Model performance
-- Calibration
-- Data quality
-- Prediction distribution
-- Pipeline execution metadata
+0.05–0.10
 
-Additionally, each model can execute custom SQL files to compute business/clinical KPIs.
+> 0.10
 
----
+KS p-value
 
-# Long-term Goal
+Measures whether the observed KS difference is statistically distinguishable from zero; lower = stronger statistical evidence of difference.
 
-Build a reusable Model Monitoring Portal capable of supporting many ML models without modifying dashboard code whenever a new model is added.
+≥ 0.05
 
-Adding a new model should ideally require only:
+0.01–0.05
 
-- new SQL files
-- metadata/configuration
-- no frontend code changes
+< 0.01
 
----
+JS Divergence
 
-# Design Philosophy
+Measures the overall difference between the two probability distributions.
 
-Do NOT hardcode dashboards.
+< 0.10
 
-Instead, build a metadata-driven dashboard engine.
+0.10–0.25
 
-Commercial products generally separate the platform into three layers:
+> 0.25
 
-Monitoring Layer
-↓
+Wasserstein Distance
 
-Metric Storage
-↓
+Measures how far the production distribution must be shifted to match the reference distribution.
 
-Visualization Layer
+< 0.10 SD
 
-Our architecture should follow the same principle.
+0.10–0.25 SD
 
----
+> 0.25 SD
 
-# High-Level Architecture
+The simplest interpretation for your UI
 
-Vertex AI Pipeline
+You could literally display:
 
-↓
+* PSI: Population shift
+* KS: Maximum distribution difference
+* KS p-value: Statistical significance of distribution difference
+* JS: Overall distribution difference
+* Wasserstein: Distance between distributions
 
-Monitoring SQL
+And one key rule for your dashboard:
 
-↓
+Don’t make KS p-value alone trigger a red alert, especially with your very large healthcare cohorts. Your screenshot is a perfect example: p-values are essentially zero while PSI is <0.007, meaning statistically detectable but very small drift.
 
-BigQuery
+For your platform, I’d think about the metrics as answering different questions:
 
-↓
+KS
 
-Metadata Layer
+“Is there a maximum separation between distributions?”
 
-↓
+PSI
 
-Dashboard Engine
+“How much did the population move across predefined bins?”
 
-↓
+JS
 
-Frontend
+“How different are the distributions overall?”
 
----
+Wasserstein
 
-# Core Components
+“How far did the distribution move in the feature’s actual units?”
 
-## 1. Monitoring Engine
+KS p-value
 
-Responsible for computing generic monitoring metrics.
+“Is the observed difference statistically distinguishable from zero?”
 
-Examples
+Then combine them.
 
-- Drift
-- PSI
-- KS
-- Wasserstein
-- Calibration
-- ROC
-- Precision
-- Recall
-- Feature importance
-- Missing values
-- Data quality
-- Prediction distribution
+Level
 
-These should be reusable across every model.
+Rule
 
----
+Meaning
 
-## 2. Business KPI Engine
+🟡 Warning
 
-Each model can define its own KPIs.
+KS ≥ 0.05 AND PSI ≥ 0.10
 
-Examples
+Meaningful drift; investigate
 
-Readmission Model
+🔴 Critical
 
-- Readmission Rate
-- Members Identified
-- Members Engaged
-- Engagement Rate
-- Top Hospitals
+KS ≥ 0.10 AND PSI ≥ 0.25
 
-SNF Model
+Strong drift; immediate investigation
 
-- Average LOS
-- Long Stay %
-- Transition Rate
+⚪ Statistical only
 
-ED Diversion
+p < 0.05 but above thresholds not met
 
-- ER PMPM
-- Avoided ER Visits
-- High Risk Members
+Don’t alert; record only
 
-The framework should allow every model to contribute custom SQL files.
+**Feature drift is an early-warning signal, not proof of model degradation.**
 
----
+For example:
 
-## 3. Metadata Layer
+Feature Drift → Investigate → Check Data Quality → Check Prediction Drift → Check Model Performance → Determine Business Impact
 
-This is one of the most important architectural pieces.
+A monitoring framework should ideally connect multiple layers.
 
-Avoid hardcoding:
+Layer 1 — Data Quality
 
-if model == RAP
+Monitor:
 
-Instead define metadata describing:
+• Missingness
+• Null rates
+• Invalid values
+• Range violations
+• Duplicate records
+• Unexpected categories
+• Pipeline failures
 
-- pages
-- widgets
-- SQL source
-- visualization
-- layout
+Layer 2 — Feature Drift
 
-Example
+Monitor:
 
-```yaml
-page:
-Clinical KPIs
+• KS
+• PSI
+• JS distance
+• Other distribution-distance metrics
 
-widgets:
+Layer 3 — Prediction Drift
 
-- title: Readmission Rate
-type: line_chart
-query: readmission_rate.sql
+Monitor:
 
-- title: Members Identified
-type: line_chart
-query: identified.sql
+• Prediction distribution
+• Score distribution
+• Percentage above intervention threshold
+• Average prediction
+• Prediction quantiles
 
-- title: Top Hospitals
-type: bar_chart
-query: top_hospitals.sql
-```
+Layer 4 — Model Performance
 
-The dashboard should read metadata and automatically build the page.
+When labels become available, monitor:
 
----
+• AUROC
+• AUPRC
+• Calibration
+• Precision
+• Recall
+• Sensitivity
+• Specificity
+• Brier score
+• Other model-specific metrics
 
-# Widget-Based Architecture
+Layer 5 — Clinical/Business KPIs
 
-Instead of building pages manually, create reusable widgets.
+For a healthcare model, monitor relevant outcomes such as:
 
-Possible widgets include
+• Number of patients identified
+• Percentage of population identified
+• Engagement rate
+• Readmission rate
+• Intervention rate
+• Outcomes among identified patients
+• Other program-specific KPIs
 
-- KPI Card
-- Line Chart
-- Bar Chart
-- Histogram
-- Scatter Plot
-- Pie Chart
-- Heatmap
-- Gauge
-- Data Table
-- Feature Importance
-- Calibration Curve
-- ROC Curve
-- PR Curve
-- Distribution Plot
-- Alert Banner
-- Pipeline Timeline
+────────
 
-Every page becomes a collection of widgets.
+13. Example Interpretation
 
----
+Suppose a feature has:
 
-# Dashboard Layout
+• KS = 0.24
+• PSI = 0.31
+• JS Distance = 0.18
 
-Possible navigation
+Interpretation:
 
-Overview
+KS = 0.24
 
-Performance
+Red.
 
-Data Quality
+There is a substantial difference in the cumulative distribution.
 
-Drift
+PSI = 0.31
 
-Calibration
+Red.
 
-Feature Importance
+The population has shifted substantially across the predefined bins.
 
-Pipeline Health
+JS = 0.18
 
-Clinical KPIs
+Yellow.
 
-Alerts
+The overall distributions show moderate divergence.
 
-Settings
+Overall conclusion
 
-Each page should support reusable widgets.
+Because multiple metrics indicate drift, the feature should be investigated rather than relying on only one metric.
 
----
+The fact that KS and PSI are red while JS is yellow does not necessarily represent a contradiction. Each metric measures distributional differences differently.
 
-# Generic vs Model-Specific Metrics
+────────
 
-Need to distinguish between:
+14. Combining Multiple Metrics
 
-Common Monitoring
+A useful monitoring strategy is to avoid triggering major action based on a single metric alone.
 
-Available for every model
+For example:
 
-Examples
+Green
 
-- Drift
-- Calibration
-- Data Quality
-- Performance
-- Pipeline Status
+All major metrics are green.
 
-Model-specific KPIs
+Yellow
 
-Unique to each model
+At least one metric is yellow and none are strongly red.
 
-Examples
+Red
 
-Readmission Rate
+Multiple metrics are red, or one highly critical feature has severe drift.
 
-Average LOS
+An example rule:
 
-ER Visits
+> **Red alert if ≥2 drift metrics are red, or if a critical feature has a red result on any primary drift metric.**
 
-Members Identified
+Another possible rule:
 
-The framework should support both seamlessly.
+> **Yellow alert if ≥1 metric is yellow; Red alert if ≥1 metric is red and the drift persists for multiple monitoring periods or is confirmed by another metric.**
 
----
+This reduces false alarms caused by one noisy metric.
 
-# Visualization Metadata
 
-Different KPIs require different visualization types.
 
-Examples
 
-Members Identified
 
-→ Line Chart
 
-Readmission Rate
-
-→ Line Chart
-
-Top Hospitals
-
-→ Horizontal Bar Chart
-
-Average LOS by Facility
-
-→ Bar Chart
-
-Regional Distribution
-
-→ Pie Chart
-
-Prediction Distribution
-
-→ Histogram
-
-Visualization choice should be defined in metadata rather than code.
-
----
-
-# BigQuery Data Model
-
-Think carefully about table design.
-
-Potential tables
-
-model_metrics
-
-drift_metrics
-
-feature_metrics
-
-pipeline_runs
-
-alerts
-
-prediction_distribution
-
-business_metrics
-
-dashboard_metadata
-
-widget_metadata
-
-Need to determine:
-
-- normalized vs denormalized
-- partitioning
-- clustering
-- querying efficiency
-- scalability
-
----
-
-# Metadata Questions
-
-Determine where metadata should live.
-
-Possible options
-
-YAML
-
-JSON
-
-BigQuery
-
-Firestore
-
-Cloud Storage
-
-Pros and cons of each.
-
-Need a recommendation.
-
----
-
-# Dashboard Engine
-
-Need a rendering engine that can:
-
-Load metadata
-
-↓
-
-Execute SQL
-
-↓
-
-Load dataframe
-
-↓
-
-Determine widget type
-
-↓
-
-Render visualization
-
-This should work for any model.
-
----
-
-# Extensibility
-
-When a new model is onboarded, the desired process is:
-
-Create SQL
-
-↓
-
-Register metadata
-
-↓
-
-Pipeline computes metrics
-
-↓
-
-Dashboard automatically displays new pages
-
-No frontend changes.
-
----
-
-# Frontend Evaluation
-
-Evaluate frontend technologies.
-
-Candidates
-
-## Streamlit
-
-Pros
-
-- Python
-- Rapid development
-- Plotly integration
-- BigQuery integration
-- Easy deployment
-
-Cons
-
-- Less polished than React
-
----
-
-## React / Next.js
-
-Pros
-
-- Maximum flexibility
-- Excellent UX
-- Enterprise feel
-
-Cons
-
-- Much larger development effort
-
----
-
-## Grafana
-
-Evaluate whether Grafana could serve as visualization layer while keeping BigQuery backend.
-
-Investigate
-
-- plugins
-- custom dashboards
-- flexibility
-- metadata-driven rendering
-
----
-
-Need recommendation based on:
-
-- maintainability
-- scalability
-- developer productivity
-- enterprise UX
-
----
-
-# Future Features
-
-Potential future roadmap
-
-AI-generated monitoring summaries
-
-Root Cause Analysis
-
-Model comparison
-
-Pipeline lineage
-
-Drill-down views
-
-Alert management
-
-Email/Slack notifications
-
-Threshold configuration
-
-User roles
-
-Model ownership
-
-Audit logs
-
-Download reports
-
-PDF generation
-
-Executive dashboard
-
-SHAP visualization
-
-Feature attribution
-
-Model registry integration
-
-Vertex AI integration
-
----
-
-# Scalability Considerations
-
-Architecture should support
-
-- 20+
-- 50+
-- 100+
-
-models without dashboard rewrites.
-
-Need recommendations on
-
-- metadata design
-- plugin architecture
-- widget architecture
-- SQL execution strategy
-- caching
-- performance optimization
-
----
-
-# Deliverables Expected From Planning
-
-Please produce:
-
-1. Overall system architecture
-2. Component diagram
-3. BigQuery schema recommendations
-4. Metadata architecture
-5. Widget architecture
-6. Dashboard architecture
-7. Frontend recommendation
-8. Backend recommendation
-9. Plugin/extension mechanism
-10. Folder structure
-11. Technology stack recommendation
-12. Scalability considerations
-13. Trade-offs between Streamlit, React, Grafana
-14. Enterprise-grade architecture recommendations inspired by Arize, WhyLabs, Fiddler, and Evidently
-15. Suggested implementation roadmap (MVP → v2 → v3)
-
-    The solution should prioritize maintainability, extensibility, and minimal code changes when onboarding new ML models.
-    
-I think one additional area is worth including because it’s something commercial platforms spend a lot of effort on:
-
-Monitoring SDK / Plugin API
-
-Instead of thinking only about dashboards, define what a model owner must provide.
-
-For example, every model package could expose:
-
-model/
-├── metadata.yaml
-├── dashboard.yaml
-├── kpis/
-│   ├── identified.sql
-│   ├── engagement.sql
-│   └── readmission.sql
-├── thresholds.yaml
-├── alerts.yaml
-└── README.md
-
-
-Then onboarding a new model becomes a registration process rather than a development project. I would encourage the planning agent to design this plugin architecture first, because it will influence the dashboard, metadata, and BigQuery schema, and it will make the platform much easier to extend over time.
-
-    
-    
-    
